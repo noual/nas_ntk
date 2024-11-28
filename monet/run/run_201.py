@@ -1,3 +1,5 @@
+from multiprocessing import Process
+
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
@@ -48,10 +50,27 @@ def run_once(algo_dict):
         rewards[name] = best_reward
     return rewards
 
+def run_all(algo_dict):
+    print(f"Process id : {os.getpid()}")
+    all_results = []
+    for n_run in range(N_RUNS):
+
+        rewards = run_once(algorithms)
+        for name, reward in rewards.items():
+            for iteration, score in enumerate(reward):
+                all_results.append({
+                    "algorithm": name,
+                    "run": n_run,
+                    "iteration": iteration,
+                    "score": score
+                })
+        df = pd.DataFrame(all_results)
+        df.to_csv("results.csv")
+
 if __name__ == '__main__':
     configure_seaborn()
-    N_API_CALLS = 100
-    N_RUNS = 2
+    N_API_CALLS = 3000
+    N_RUNS = 20
     api = get_dataset_api("nasbench201", 'cifar10')
 
     algorithms = {
@@ -99,21 +118,16 @@ if __name__ == '__main__':
             })
         }
     }
-    all_results = []
-    for n_run in range(N_RUNS):
 
-        rewards = run_once(algorithms)
-        for name, reward in rewards.items():
-            for iteration, score in enumerate(reward):
-                all_results.append({
-                    "algorithm": name,
-                    "run": n_run,
-                    "iteration": iteration,
-                    "score": score
-                })
-        df = pd.DataFrame(all_results)
-        df.to_csv("results.csv")
+    if __name__ == "__main__":
+        processes = []
+        for i in range(8):  # Create 4 processes
+            p = Process(target=run_all, args=(algorithms,))
+            p.start()
+            processes.append(p)
 
+        for p in processes:
+            p.join()
 
     # best_reward_uct = []
     # best_reward_rave = []
