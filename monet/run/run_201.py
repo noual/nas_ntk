@@ -120,15 +120,15 @@ if __name__ == '__main__':
     }
 
     if __name__ == "__main__":
-        processes = []
-        for i in range(8):  # Create 4 processes
-            p = Process(target=run_all, args=(algorithms,))
-            p.start()
-            processes.append(p)
-
-        for p in processes:
-            p.join()
-
+        # processes = []
+        # for i in range(8):  # Create 4 processes
+        #     p = Process(target=run_all, args=(algorithms,))
+        #     p.start()
+        #     processes.append(p)
+        #
+        # for p in processes:
+        #     p.join()
+    run_all(algorithms)
     # best_reward_uct = []
     # best_reward_rave = []
     # best_reward_nrpa = []
