@@ -9,6 +9,7 @@ from yacs.config import CfgNode
 from monet.node import Node
 from monet.search_spaces.nasbench101_node import NASBench101Cell
 from monet.search_spaces.nasbench201_node import NASBench201Cell
+from monet.search_spaces.nasbench301_node import DARTSState, DARTSCell
 from naslib.search_spaces.core import Metric
 from naslib.utils import get_dataset_api
 
@@ -33,7 +34,7 @@ class MCTSAgent:
         self.disable_tqdm = config.disable_tqdm
 
     def adapt_search_space(self, search_space, dataset):
-        assert search_space in ["nasbench201", "nasbench101"], "Only NASBench201 and NASBench101 are supported"
+        assert search_space in ["nasbench201", "nasbench101", "nasbench301"], "Only NASBench301, NASBench201, NASBench101 are supported"
         if search_space == "nasbench201":
             if isinstance(self, UCT):
                 print(f"Reducing number of iterations")
@@ -49,6 +50,17 @@ class MCTSAgent:
             assert dataset in ["cifar10"], "Only CIFAR10 is supported"
             self.root = Node(state=NASBench101Cell(7))
             self.api = get_dataset_api(search_space, dataset)["nb101_data"]
+
+        elif search_space == "nasbench301":
+            if isinstance(self, UCT):
+                print(f"Reducing number of iterations")
+                self.n_iter = self.n_iter // 16
+            assert dataset in ["cifar10"], "Only CIFAR10 is supported"
+            self.root = Node(state= DARTSState((DARTSCell(),
+                                                DARTSCell())
+                                               )
+                             )
+            self.api = get_dataset_api(search_space, dataset)
 
     def _score_node(self, node: Node, parent: Node):
         pass

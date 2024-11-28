@@ -117,6 +117,10 @@ class Bananas(MetaOptimizer):
                 self.performance_metric, self.dataset, dataset_api=self.dataset_api
             )
 
+            # MONET SPECIFIC
+            self.metrics.append(model.accuracy)
+            self.best_metric.append(max(self.metrics))
+
         if self.zc and len(self.train_data) <= self.max_zerocost:
             model.zc_scores = self.query_zc_scores(model.arch)
 
@@ -187,12 +191,6 @@ class Bananas(MetaOptimizer):
                     model.arch_hash = candidate.get_hash()
                     candidates.append(model)
 
-                    # MONET SPECIFIC
-                    model.accuracy = model.arch.query(
-                        self.performance_metric, self.dataset, dataset_api=self.dataset_api
-                    )
-                    self.metrics.append(model.accuracy)
-                    self.best_metric.append(max(self.metrics))
 
         else:
             logger.info('{} is not yet supported as a acq fn optimizer'.format(
