@@ -7,7 +7,8 @@ from tqdm import tqdm
 from yacs.config import CfgNode
 import os
 print(os.getcwd())
-
+import sys
+sys.path.append("../..")
 from monet.node import Node
 from monet.search_algorithms.mcts_agent import UCT, RAVE, MCTSAgent
 from monet.search_algorithms.nested import NRPA
