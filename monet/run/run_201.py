@@ -1,3 +1,4 @@
+import multiprocessing
 from multiprocessing import Process
 
 import numpy as np
@@ -129,7 +130,9 @@ if __name__ == '__main__':
         #
         # for p in processes:
         #     p.join()
-    run_all(algorithms)
+        n = multiprocessing.cpu_count() * 32  # guard against counting only active cores
+        with multiprocessing.Pool(n) as pool:
+            pool.map(run_all, algorithms)
     # best_reward_uct = []
     # best_reward_rave = []
     # best_reward_nrpa = []
