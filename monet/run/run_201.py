@@ -130,7 +130,7 @@ if __name__ == '__main__':
         #
         # for p in processes:
         #     p.join()
-        n = multiprocessing.cpu_count() * 32  # guard against counting only active cores
+        n = multiprocessing.cpu_count()  # guard against counting only active cores
         with multiprocessing.Pool(n) as pool:
             pool.map(run_all, algorithms)
     # best_reward_uct = []
