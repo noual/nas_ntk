@@ -178,13 +178,13 @@ class Bananas(MetaOptimizer):
                 self.best_metric.append(max(self.metrics))
 
         elif self.acq_fn_optimization == 'mutation':
-            print(f"[GET_NEW_CANDIDATES]")
+            # print(f"[GET_NEW_CANDIDATES]")
             # mutate the k best architectures by x
             best_arch_indices = np.argsort(ytrain)[-self.num_arches_to_mutate:]
             best_archs = [self.train_data[i].arch for i in best_arch_indices]
             candidates = []
-            print(f"There are {len(best_archs)} best architectures and {self.max_mutations} mutations and {int(self.num_candidates)} candidates.")
-            print(f"So we have {(int(self.num_candidates / len(best_archs) / self.max_mutations)) * len(best_archs) * self.max_mutations} loop iterations.")
+            # print(f"There are {len(best_archs)} best architectures and {self.max_mutations} mutations and {int(self.num_candidates)} candidates.")
+            # print(f"So we have {(int(self.num_candidates / len(best_archs) / self.max_mutations)) * len(best_archs) * self.max_mutations} loop iterations.")
             t0 = time.time()
             clones = []
             clone1 = []
@@ -221,12 +221,12 @@ class Bananas(MetaOptimizer):
                     t1 = time.time()
                     instanciate.append(t1 - t0)
             tb = time.time()
-            print(f" -> Time to clone: {sum(clones)}")
-            print(f" -> Time to clone1: {sum(clone1)}")
-            print(f" -> Time to mutate: {sum(mutates)}")
-            print(f" -> Time to instanciate: {sum(instanciate)}")
-            print(f" -> Time to assign: {sum(assign)}")
-            print(f" -> Time to get new candidates: {tb -ta}")
+            # print(f" -> Time to clone: {sum(clones)}")
+            # print(f" -> Time to clone1: {sum(clone1)}")
+            # print(f" -> Time to mutate: {sum(mutates)}")
+            # print(f" -> Time to instanciate: {sum(instanciate)}")
+            # print(f" -> Time to assign: {sum(assign)}")
+            # print(f" -> Time to get new candidates: {tb -ta}")
 
         else:
             logger.info('{} is not yet supported as a acq fn optimizer'.format(

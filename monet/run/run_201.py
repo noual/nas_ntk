@@ -71,34 +71,34 @@ def run_all(algo_dict):
 
 if __name__ == '__main__':
     configure_seaborn()
-    N_API_CALLS = 3000
-    N_RUNS = 20
+    N_API_CALLS = CfgNode.load_cfg(open('../../naslib/configs/nrpa.yaml')).search.n_iter
+    N_RUNS = 200
 
     algorithms = {
-        # "NRPA": {
-        #     "algorithm": NRPA,
-        #     "config": CfgNode.load_cfg(open('../../naslib/configs/nrpa.yaml'))
-        # },
-        # "UCT": {
-        #     "algorithm": UCT,
-        #     "config": CfgNode.load_cfg(open('../../naslib/configs/uct.yaml'))
-        # },
-        # "RAVE": {
-        #     "algorithm": RAVE,
-        #     "config": CfgNode.load_cfg(open('../../naslib/configs/uct.yaml'))
-        # },
-        # "RE": {
-        #     "algorithm": RegularizedEvolution,
-        #     "config": CfgNode({
-        #         "dataset": "cifar10",
-        #         "search": {
-        #             "epochs": N_API_CALLS,
-        #             "sample_size": 25,
-        #             "population_size": 100
-        #         },
-        #         "df_path": "../csv/nasbench201.csv"
-        #     })
-        # },
+        "NRPA": {
+            "algorithm": NRPA,
+            "config": CfgNode.load_cfg(open('../../naslib/configs/nrpa.yaml'))
+        },
+        "UCT": {
+            "algorithm": UCT,
+            "config": CfgNode.load_cfg(open('../../naslib/configs/uct.yaml'))
+        },
+        "RAVE": {
+            "algorithm": RAVE,
+            "config": CfgNode.load_cfg(open('../../naslib/configs/uct.yaml'))
+        },
+        "RE": {
+            "algorithm": RegularizedEvolution,
+            "config": CfgNode({
+                "dataset": "cifar10",
+                "search": {
+                    "epochs": N_API_CALLS,
+                    "sample_size": 25,
+                    "population_size": 100
+                },
+                "df_path": "../csv/nasbench201.csv"
+            })
+        },
         "BANANAS": {
             "algorithm": Bananas,
             "config": CfgNode({
@@ -114,7 +114,7 @@ if __name__ == '__main__':
                     "max_mutations": 1,
                     "max_candidates": 200,
                     "num_candidates": 50,
-                    "epochs": 3000,
+                    "epochs": N_API_CALLS,
                 },
                 "dataset": "cifar10",
                 "df_path": "../csv/nasbench201.csv"

@@ -6,7 +6,7 @@ search:
   softmax_temp: 2
   playouts_per_selection: 1
   C: 0.1
-  n_iter: 3000
+  n_iter: 2000
   rave_b: 0.1
 disable_tqdm: true
 seed: 0
