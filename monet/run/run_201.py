@@ -104,7 +104,7 @@ if __name__ == '__main__':
             "config": CfgNode({
                 "search": {
                     "acq_fn_optimization": "mutation",
-                    "k": 10,
+                    "k": 100,
                     "num_init": 10,
                     "num_ensemble": 3,
                     "predictor_type": "bananas",
