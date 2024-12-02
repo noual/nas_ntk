@@ -73,32 +73,32 @@ if __name__ == '__main__':
     configure_seaborn()
     N_API_CALLS = 3000
     N_RUNS = 20
-    api = get_dataset_api("nasbench201", 'cifar10')
 
     algorithms = {
-        "NRPA": {
-            "algorithm": NRPA,
-            "config": CfgNode.load_cfg(open('../../naslib/configs/nrpa.yaml'))
-        },
-        "UCT": {
-            "algorithm": UCT,
-            "config": CfgNode.load_cfg(open('../../naslib/configs/uct.yaml'))
-        },
-        "RAVE": {
-            "algorithm": RAVE,
-            "config": CfgNode.load_cfg(open('../../naslib/configs/uct.yaml'))
-        },
-        "RE": {
-            "algorithm": RegularizedEvolution,
-            "config": CfgNode({
-                "dataset": "cifar10",
-                "search": {
-                    "epochs": N_API_CALLS,
-                    "sample_size": 25,
-                    "population_size": 100
-                }
-            })
-        },
+        # "NRPA": {
+        #     "algorithm": NRPA,
+        #     "config": CfgNode.load_cfg(open('../../naslib/configs/nrpa.yaml'))
+        # },
+        # "UCT": {
+        #     "algorithm": UCT,
+        #     "config": CfgNode.load_cfg(open('../../naslib/configs/uct.yaml'))
+        # },
+        # "RAVE": {
+        #     "algorithm": RAVE,
+        #     "config": CfgNode.load_cfg(open('../../naslib/configs/uct.yaml'))
+        # },
+        # "RE": {
+        #     "algorithm": RegularizedEvolution,
+        #     "config": CfgNode({
+        #         "dataset": "cifar10",
+        #         "search": {
+        #             "epochs": N_API_CALLS,
+        #             "sample_size": 25,
+        #             "population_size": 100
+        #         },
+        #         "df_path": "../csv/nasbench201.csv"
+        #     })
+        # },
         "BANANAS": {
             "algorithm": Bananas,
             "config": CfgNode({
@@ -114,9 +114,10 @@ if __name__ == '__main__':
                     "max_mutations": 1,
                     "max_candidates": 200,
                     "num_candidates": 50,
-                    "epochs": N_API_CALLS,
+                    "epochs": 3000,
                 },
-                "dataset": "cifar10"
+                "dataset": "cifar10",
+                "df_path": "../csv/nasbench201.csv"
             })
         }
     }
@@ -130,9 +131,12 @@ if __name__ == '__main__':
         #
         # for p in processes:
         #     p.join()
-        n = multiprocessing.cpu_count()  # guard against counting only active cores
-        with multiprocessing.Pool(n) as pool:
-            pool.map(run_all, algorithms)
+        # n = multiprocessing.cpu_count()  # guard against counting only active cores
+        # with multiprocessing.Pool(n) as pool:
+        #     pool.map(run_all, algorithms)
+
+
+        run_all(algorithms)
     # best_reward_uct = []
     # best_reward_rave = []
     # best_reward_nrpa = []

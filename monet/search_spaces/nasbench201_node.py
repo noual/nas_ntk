@@ -190,11 +190,13 @@ class NASBench201Cell:
         """
 
         if df is not None:
+            assert metric == Metric.VAL_ACCURACY, "Only VAL_ACCURACY is supported for now."
+            assert dataset == "cifar10", "Only CIFAR-10 is supported for now."
+            if metric == Metric.VAL_ACCURACY and dataset == "cifar10":
+                metric_to_fetch = "cifar_10_val_accuracy"
             arch_str = self.to_str()
-            idx = api.query_index_by_arch(arch_str)
-            row = df.loc[df["index"] == idx]
-            reward = row["score"].item()
-            ntk = row["score"].item()
+            row = df.loc[df["arch_str"] == arch_str]
+            reward = row[metric_to_fetch].item()
             return reward
 
         arch_str = self.to_str()

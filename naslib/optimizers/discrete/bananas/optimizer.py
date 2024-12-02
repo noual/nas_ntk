@@ -1,5 +1,8 @@
 import collections
 import logging
+import time
+
+import pandas as pd
 import torch
 import copy
 import numpy as np
@@ -67,6 +70,9 @@ class Bananas(MetaOptimizer):
         # MONET SPECIFIC
         self.metrics = []
         self.best_metric = []
+        self.df = None
+        if config.df_path != "none":
+            self.df = pd.read_csv(config.df_path)
 
 
     def adapt_search_space(self, search_space, scope=None, dataset_api=None):
@@ -114,7 +120,7 @@ class Bananas(MetaOptimizer):
             model.accuracy = self.zc_api[str(model.arch_hash)]['val_accuracy']
         else:
             model.accuracy = model.arch.query(
-                self.performance_metric, self.dataset, dataset_api=self.dataset_api
+                self.performance_metric, self.dataset, dataset_api=self.dataset_api, df=self.df
             )
 
             # MONET SPECIFIC
@@ -172,25 +178,55 @@ class Bananas(MetaOptimizer):
                 self.best_metric.append(max(self.metrics))
 
         elif self.acq_fn_optimization == 'mutation':
+            print(f"[GET_NEW_CANDIDATES]")
             # mutate the k best architectures by x
             best_arch_indices = np.argsort(ytrain)[-self.num_arches_to_mutate:]
             best_archs = [self.train_data[i].arch for i in best_arch_indices]
             candidates = []
+            print(f"There are {len(best_archs)} best architectures and {self.max_mutations} mutations and {int(self.num_candidates)} candidates.")
+            print(f"So we have {(int(self.num_candidates / len(best_archs) / self.max_mutations)) * len(best_archs) * self.max_mutations} loop iterations.")
+            t0 = time.time()
+            clones = []
+            clone1 = []
+            mutates = []
+            instanciate = []
+            assign = []
+            ta = time.time()
             for arch in best_archs:
                 for _ in range(int(self.num_candidates / len(best_archs) / self.max_mutations)):
+                    t0 = time.time()
                     candidate = arch.clone()
+                    t1 = time.time()
+                    clone1.append(t1 - t0)
                     for __ in range(int(self.max_mutations)):
+                        t0 = time.time()
                         arch = self.search_space.clone()
+                        t1 = time.time()
+                        clones.append(t1 - t0)
+                        t0 = time.time()
                         arch.mutate(candidate, dataset_api=self.dataset_api)
+                        t1 = time.time()
+                        mutates.append(t1 - t0)
                         if self.search_space.instantiate_model == True:
                             arch.parse()
+                        t0 = time.time()
                         candidate = arch
-
+                        t1 = time.time()
+                        assign.append(t1 - t0)
+                    t0 = time.time()
                     model = torch.nn.Module()
                     model.arch = candidate
                     model.arch_hash = candidate.get_hash()
                     candidates.append(model)
-
+                    t1 = time.time()
+                    instanciate.append(t1 - t0)
+            tb = time.time()
+            print(f" -> Time to clone: {sum(clones)}")
+            print(f" -> Time to clone1: {sum(clone1)}")
+            print(f" -> Time to mutate: {sum(mutates)}")
+            print(f" -> Time to instanciate: {sum(instanciate)}")
+            print(f" -> Time to assign: {sum(assign)}")
+            print(f" -> Time to get new candidates: {tb -ta}")
 
         else:
             logger.info('{} is not yet supported as a acq fn optimizer'.format(
@@ -202,14 +238,19 @@ class Bananas(MetaOptimizer):
     def new_epoch(self, epoch):
 
         if epoch < self.num_init:
+            # print(f"\n Before number of inits")
             model = self._sample_new_model()
             self._set_scores(model)
         else:
+            # print(f"Running new epoch {epoch} with length of batch {len(self.next_batch)}")
             if len(self.next_batch) == 0:
+                # print(f"Length of next batch is 0")
                 # train a neural predictor
-                xtrain, ytrain = self._get_train()
-                ensemble = self._get_ensemble()
-
+                # print(f"Getting train...")
+                xtrain, ytrain = self._get_train()  # Pas ca le pb
+                # print(f"Getting ensemble...")
+                ensemble = self._get_ensemble()  # Pas ca le pb
+                # print(f"Got ensemble.")
                 if self.semi:
                     # create unlabeled data and pass it to the predictor
                     while len(self.unlabeled) < len(xtrain):
@@ -224,7 +265,6 @@ class Bananas(MetaOptimizer):
                     ensemble.set_pre_computations(
                         unlabeled=[m.arch for m in self.unlabeled]
                     )
-
                 if self.zc and len(self.train_data) <= self.max_zerocost:
                     # pass the zero-cost scores to the predictor
                     train_info = {'zero_cost_scores': [
@@ -236,19 +276,19 @@ class Bananas(MetaOptimizer):
                             m.zc_scores for m in self.unlabeled]}
                         ensemble.set_pre_computations(
                             unlabeled_zc_info=unlabeled_zc_info)
-
-                ensemble.fit(xtrain, ytrain)
-
+                # print(f"Training ensemble...")
+                ensemble.fit(xtrain, ytrain)  # Un peut lent mais pas ca le pb
+                # print(f"Trained ensemble.")
                 # define an acquisition function
                 acq_fn = acquisition_function(
                     ensemble=ensemble, ytrain=ytrain, acq_fn_type=self.acq_fn_type
                 )
 
                 # optimize the acquisition function to output k new architectures
-                candidates = self._get_new_candidates(ytrain=ytrain)
-
-                self.next_batch = self._get_best_candidates(candidates, acq_fn)
-
+                # print(f"Getting new candidates...")
+                candidates = self._get_new_candidates(ytrain=ytrain)  # INVESTIGATE THIS !!!
+                # print(f"Got new candidates.")
+                self.next_batch = self._get_best_candidates(candidates, acq_fn)  # Pas ça le pb
             # train the next architecture chosen by the neural predictor
             model = self.next_batch.pop()
             self._set_scores(model)

@@ -49,7 +49,7 @@ class NasBench201SearchSpace(Graph):
         self.in_channels = in_channels
         self.space_name = "nasbench201"
         self.labeled_archs = None
-        self.instantiate_model = True
+        self.instantiate_model = False  # MONET SPECIFIC
         self.sample_without_replacement = False
 
         #
@@ -147,7 +147,8 @@ class NasBench201SearchSpace(Graph):
             path: str = None,
             epoch: int = -1,
             full_lc: bool = False,
-            dataset_api: dict = None) -> float:
+            dataset_api: dict = None,
+            df=None) -> float:
         """
         Query results from nasbench 201
         """
@@ -163,6 +164,21 @@ class NasBench201SearchSpace(Graph):
             ], "Unknown dataset: {}".format(dataset)
         if dataset_api is None:
             raise NotImplementedError("Must pass in dataset_api to query NAS-Bench-201")
+
+        # MONET SPECIFIC
+        if df is not None:
+            assert metric == Metric.VAL_ACCURACY, "Only VAL_ACCURACY is supported for now."
+            assert dataset == "cifar10", "Only CIFAR-10 is supported for now."
+            if metric == Metric.VAL_ACCURACY and dataset == "cifar10":
+                metric_to_fetch = "cifar_10_val_accuracy"
+            if self.instantiate_model:
+                arch_str = convert_naslib_to_str(self)
+            else:
+                arch_str = convert_op_indices_to_str(self.get_hash())
+            row = df.loc[df["arch_str"] == arch_str]
+            reward = row[metric_to_fetch].item()
+            return reward
+
 
         metric_to_nb201 = {
             Metric.TRAIN_ACCURACY: "train_acc1es",

@@ -1,5 +1,7 @@
 import collections
 import logging
+
+import pandas as pd
 import torch
 import numpy as np
 
@@ -35,6 +37,9 @@ class RegularizedEvolution(MetaOptimizer):
         # MONET SPECIFIC
         self.metrics = []
         self.best_metric = []
+        self.df = None
+        if config.df_path != "none":
+            self.df = pd.read_csv(config.df_path)
 
     def adapt_search_space(self, search_space: Graph, scope: str = None, dataset_api: dict = None):
         assert (
@@ -56,7 +61,7 @@ class RegularizedEvolution(MetaOptimizer):
             model.arch = self.search_space.clone()
             model.arch.sample_random_architecture(dataset_api=self.dataset_api)
             model.accuracy = model.arch.query(
-                self.performance_metric, self.dataset, dataset_api=self.dataset_api
+                self.performance_metric, self.dataset, dataset_api=self.dataset_api, df=self.df
             )
 
             # MONET SPECIFIC
