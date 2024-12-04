@@ -8,41 +8,39 @@ from matplotlib import pyplot as plt
 from tqdm import tqdm
 from yacs.config import CfgNode
 import os
-
 print(os.getcwd())
 import sys
-
 sys.path.append("../..")
 from monet.node import Node
 from monet.search_algorithms.mcts_agent import UCT, RAVE, MCTSAgent
 from monet.search_algorithms.nested import NRPA
-from monet.search_spaces.nasbench201_node import NASBench201Cell
+from monet.search_spaces.nasbench101_node import NASBench101Cell
 from monet.utils.helpers import configure_seaborn
 from naslib.optimizers import RegularizedEvolution, Bananas, RandomSearch
 from naslib.search_spaces.core import Metric
 from naslib.utils import get_dataset_api
-from naslib.search_spaces.nasbench201.graph import NasBench201SearchSpace
+from naslib.search_spaces.nasbench101.graph import NasBench101SearchSpace
 
-SEARCH_SPACE = "nasbench201"
+SEARCH_SPACE = "nasbench101"
 DATASET = "cifar10"
-
+N_ITER = 3500
 
 def run_mcts(algorithm, config):
+    config.search.n_iter = N_ITER
     alg = algorithm(config)
     alg.adapt_search_space(SEARCH_SPACE, DATASET)
     alg.main_loop()
     return alg.best_reward
 
-
 def run_naslib(algorithm, config):
+    config.search.epochs = N_ITER
     alg = algorithm(config)
-    api = get_dataset_api("nasbench201", 'cifar10')
-    alg.adapt_search_space(NasBench201SearchSpace())
+    api = get_dataset_api("nasbench101", 'cifar10')
+    alg.adapt_search_space(NasBench101SearchSpace())
     alg.dataset_api = api
     for epoch in tqdm(range(config.search.epochs)):
         alg.new_epoch(epoch)
     return alg.best_metric
-
 
 def run_once(algo_dict):
     rewards = {}
@@ -57,7 +55,6 @@ def run_once(algo_dict):
             best_reward = run_naslib(optimizer, config)
         rewards[name] = best_reward
     return rewards
-
 
 def run_all(algo_dict, output_file="results_local"):
     print(algo_dict == algorithms)
@@ -75,8 +72,7 @@ def run_all(algo_dict, output_file="results_local"):
                     "score": score
                 })
         df = pd.DataFrame(all_results)
-        df.to_csv(f"nasbench201_{output_file}.csv")
-
+        df.to_csv(f"nasbench101_{output_file}.csv")
 
 if __name__ == '__main__':
     configure_seaborn()
@@ -84,46 +80,46 @@ if __name__ == '__main__':
     N_RUNS = 200
 
     algorithms = {
-        "NRPA_L1": {
-            "algorithm": NRPA,
-            "config": CfgNode({
-                "df_path": "../../monet/csv/nasbench201.csv",
-                "dataset": "cifar10",
-                "search": {
-                    "level": 1,
-                    "nrpa_alpha": 0.1,
-                    "softmax_temp": 2,
-                    "playouts_per_selection": 1,
-                    "C": 0.1,
-                    "n_iter": 2200,
-                    "rave_b": 0.1,
-                },
-                "disable_tqdm": "true",
-                "seed": 0
-            })
-        },
-        "NRPA_L2": {
-            "algorithm": NRPA,
-            "config": CfgNode({
-                "df_path": "../../monet/csv/nasbench201.csv",
-                "dataset": "cifar10",
-                "search": {
-                    "level": 2,
-                    "nrpa_alpha": 0.1,
-                    "softmax_temp": 2,
-                    "playouts_per_selection": 1,
-                    "C": 0.1,
-                    "n_iter": 2200,
-                    "rave_b": 0.1,
-                },
-                "disable_tqdm": "true",
-                "seed": 0
-            })
-        },
+        # "NRPA_L1": {
+        #     "algorithm": NRPA,
+        #     "config": CfgNode({
+        #         "df_path": "../../monet/csv/nasbench101.csv",
+        #         "dataset": "cifar10",
+        #         "search": {
+        #             "level": 1,
+        #             "nrpa_alpha": 0.1,
+        #             "softmax_temp": 2,
+        #             "playouts_per_selection": 1,
+        #             "C": 0.1,
+        #             "n_iter": 2200,
+        #             "rave_b": 0.1,
+        #         },
+        #         "disable_tqdm": "true",
+        #         "seed": 0
+        #     })
+        # },
+        # "NRPA_L2": {
+        #     "algorithm": NRPA,
+        #     "config": CfgNode({
+        #         "df_path": "../../monet/csv/nasbench101.csv",
+        #         "dataset": "cifar10",
+        #         "search": {
+        #             "level": 2,
+        #             "nrpa_alpha": 0.1,
+        #             "softmax_temp": 2,
+        #             "playouts_per_selection": 1,
+        #             "C": 0.1,
+        #             "n_iter": 2200,
+        #             "rave_b": 0.1,
+        #         },
+        #         "disable_tqdm": "true",
+        #         "seed": 0
+        #     })
+        # },
         "NRPA_L3": {
             "algorithm": NRPA,
             "config": CfgNode({
-                "df_path": "../../monet/csv/nasbench201.csv",
+                "df_path": "../../monet/csv/nasbench101.csv",
                 "dataset": "cifar10",
                 "search": {
                     "level": 3,
@@ -138,21 +134,21 @@ if __name__ == '__main__':
                 "seed": 0
             })
         },
-        # "RS": {
-        #     "algorithm": RandomSearch,
-        #     "config": CfgNode({
-        #         "dataset": "cifar10",
-        #         "search": {
-        #             "epochs": 200,
-        #             "fidelity": 1
-        #         },
-        #         "df_path": "../../monet/csv/nasbench201.csv"
-        #     })
-        # },
+        "RS": {
+            "algorithm": RandomSearch,
+            "config": CfgNode({
+                "dataset": "cifar10",
+                "search": {
+                    "epochs": 200,
+                    "fidelity": 1
+                },
+                "df_path": "../../monet/csv/nasbench101.csv"
+            })
+        },
         "UCT": {
             "algorithm": UCT,
             "config": CfgNode({
-                "df_path": "../../monet/csv/nasbench201.csv",
+                "df_path": "../../monet/csv/nasbench101.csv",
                 "dataset": "cifar10",
                 "search": {
                     "playouts_per_selection": 1,
@@ -167,7 +163,7 @@ if __name__ == '__main__':
         "RAVE": {
             "algorithm": RAVE,
             "config": CfgNode({
-                "df_path": "../../monet/csv/nasbench201.csv",
+                "df_path": "../../monet/csv/nasbench101.csv",
                 "dataset": "cifar10",
                 "search": {
                     "playouts_per_selection": 1,
@@ -179,39 +175,18 @@ if __name__ == '__main__':
 
             })
         },
-        # "RE": {
-        #     "algorithm": RegularizedEvolution,
-        #     "config": CfgNode({
-        #         "dataset": "cifar10",
-        #         "search": {
-        #             "epochs": N_API_CALLS,
-        #             "sample_size": 25,
-        #             "population_size": 100
-        #         },
-        #         "df_path": "../csv/nasbench201.csv"
-        #     })
-        # },
-        # "BANANAS": {
-        #     "algorithm": Bananas,
-        #     "config": CfgNode({
-        #         "search": {
-        #             "acq_fn_optimization": "mutation",
-        #             "k": 10,
-        #             "num_init": 10,
-        #             "num_ensemble": 3,
-        #             "predictor_type": "bananas",
-        #             "acq_fn_type": "its",
-        #             "encoding_type": "path",
-        #             "num_arches_to_mutate": 1,
-        #             "max_mutations": 1,
-        #             "max_candidates": 200,
-        #             "num_candidates": 50,
-        #             "epochs": N_API_CALLS,
-        #         },
-        #         "dataset": "cifar10",
-        #         "df_path": "../csv/nasbench201.csv"
-        #     })
-        # }
+        "RE": {
+            "algorithm": RegularizedEvolution,
+            "config": CfgNode({
+                "dataset": "cifar10",
+                "df_path": "../../monet/csv/nasbench101.csv",
+                "search": {
+                    "epochs": N_API_CALLS,
+                    "sample_size": 25,
+                    "population_size": 100
+                },
+            })
+        }
     }
 
     if __name__ == "__main__":

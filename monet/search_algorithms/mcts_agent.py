@@ -34,6 +34,7 @@ class MCTSAgent:
         self.disable_tqdm = config.disable_tqdm
 
     def adapt_search_space(self, search_space, dataset):
+        print(search_space, dataset)
         assert search_space in ["nasbench201", "nasbench101", "nasbench301"], "Only NASBench301, NASBench201, NASBench101 are supported"
         if search_space == "nasbench201":
             if isinstance(self, UCT):
@@ -158,8 +159,8 @@ class UCT(MCTSAgent):
 
         return node
 
-    def _get_reward(self, node, metric=Metric.VAL_ACCURACY, dataset="cifar10", df=None):
-        return node.get_reward(self.api, metric, dataset, df)
+    def _get_reward(self, node, metric=Metric.VAL_ACCURACY, dataset="cifar10"):
+        return node.get_reward(self.api, metric, dataset, self.df)
 
     def _playout(self, node: Node):
         """

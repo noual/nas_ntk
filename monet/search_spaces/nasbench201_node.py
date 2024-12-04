@@ -8,9 +8,6 @@ from naslib.search_spaces.nasbench201.conversions import convert_str_to_op_indic
 from naslib.search_spaces.nasbench201.graph import NasBench201SearchSpace
 from naslib.search_spaces.core.query_metrics import Metric
 
-N_NODES = 4
-ADJACENCY_MATRIX_SIZE = N_NODES ** 2
-N_OPERATIONS = 5
 
 class NASBench201Vertice:
     """
@@ -79,6 +76,9 @@ class NASBench201Cell:
         self.vertices = [vertice_type(i) for i in range(n_vertices)]
         self.OPERATIONS = self.vertices[0].OPERATIONS
         self.zobrist_table = None
+        self.N_NODES = 4
+        self.ADJACENCY_MATRIX_SIZE = self.N_NODES ** 2
+        self.N_OPERATIONS = 5
 
     def is_complete(self):
         """
@@ -169,11 +169,16 @@ class NASBench201Cell:
         Initialize the Zobrist table for the cell.
         """
         self.zobrist_table = []
-        for i in range(ADJACENCY_MATRIX_SIZE):
+        for i in range(self.ADJACENCY_MATRIX_SIZE):
             adjacency_table = []
-            for operation in range(N_OPERATIONS):
+            for connexion in range(2):  # Connextion or no connexion
                 adjacency_table.append(random.randint(0, 2 ** 64))
             self.zobrist_table.append(adjacency_table)
+        for i in range(self.N_NODES):
+            operation_table = []
+            for operation in range(self.N_OPERATIONS):
+                operation_table.append(random.randint(0, 2 ** 64))
+            self.zobrist_table.append(operation_table)
 
     def get_reward(self, api, metric=Metric.VAL_ACCURACY, dataset="cifar10", df=None):
         """

@@ -1,4 +1,8 @@
+import time
+
+import pandas as pd
 import torch
+from build.lib.naslib.search_spaces import NasBench201SearchSpace
 
 from naslib.optimizers.core.metaclasses import MetaOptimizer
 from naslib.search_spaces.core.query_metrics import Metric
@@ -35,6 +39,13 @@ class RandomSearch(MetaOptimizer):
         self.sampled_archs = []
         self.history = torch.nn.ModuleList()
 
+        # MONET SPECIFIC
+        self.metrics = []
+        self.best_metric = []
+        self.df = None
+        if config.df_path != "none":
+            self.df = pd.read_csv(config.df_path)
+
     def adapt_search_space(self, search_space: Graph, scope: str = None, dataset_api: dict = None):
         assert (
             search_space.QUERYABLE
@@ -54,9 +65,13 @@ class RandomSearch(MetaOptimizer):
         model.accuracy = model.arch.query(
             self.performance_metric,
             self.dataset,
-            epoch=self.fidelity,
             dataset_api=self.dataset_api,
+            df = self.df
         )
+
+        # MONET SPECIFIC
+        self.metrics.append(model.accuracy)
+        self.best_metric.append(max(self.metrics))
 
         self.sampled_archs.append(model)
         self._update_history(model)

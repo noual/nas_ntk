@@ -5,6 +5,7 @@ import torch
 import torch.nn.functional as F
 from typing import *
 
+from build.lib.naslib.utils.nb101_api import hash_module
 from naslib.search_spaces.core.graph import Graph
 from naslib.search_spaces.core.query_metrics import Metric
 from naslib.search_spaces.nasbench101.conversions import convert_spec_to_model, convert_spec_to_tuple, \
@@ -84,12 +85,29 @@ class NasBench101SearchSpace(Graph):
               path: str = None,
               epoch: int = -1,
               full_lc: bool = False,
-              dataset_api: dict = None) -> Union[list, float]:
+              dataset_api: dict = None,
+              df = None) -> Union[list, float]:
         """
         Query results from nasbench 101
         """
         assert isinstance(metric, Metric)
         assert dataset in ["cifar10", None], "Unknown dataset: {}".format(dataset)
+
+        # MONET SPECIFIC
+        if df is not None:
+            assert metric == Metric.VAL_ACCURACY, "Only VAL_ACCURACY is supported for now."
+            assert dataset == "cifar10", "Only CIFAR-10 is supported for now."
+            if metric == Metric.VAL_ACCURACY and dataset == "cifar10":
+                metric_to_fetch = "cifar_10_val_accuracy"
+            api_spec = dataset_api["api"].ModelSpec(**self.spec)
+            matrix = api_spec.matrix
+            operations = api_spec.ops
+            labeling = [-1] + [OPS.index(op) for op in operations[1:-1]] + [-2]
+            arch_hash = hash_module(matrix, labeling)
+            row = df.loc[df["arch_hash"] == arch_hash]
+            reward = row[metric_to_fetch].item()
+            return reward
+
 
         if metric in [Metric.ALL, Metric.HP]:
             raise NotImplementedError()
@@ -355,19 +373,3 @@ def is_valid_vertex(matrix: np.ndarray, vertex: int) -> bool:
 def is_valid_edge(matrix: np.ndarray, edge: tuple) -> bool:
     edges, nodes = get_utilized(matrix)
     return edge in edges
-
-
-if __name__ == '__main__':
-    dataset_api = get_dataset_api('nasbench101', None)
-    search_space = NasBench101SearchSpace()
-
-    for i in range(1):
-        graph = search_space.clone()
-        graph.sample_random_architecture(dataset_api=dataset_api)
-
-        graph_hash = graph.get_hash()
-        print(graph_hash)
-
-        x = torch.randn(2, 3, 32, 32)
-        result = graph(x)
-        print(result)

@@ -169,7 +169,8 @@ class Bananas(MetaOptimizer):
                 # self.search_space.sample_random_architecture(dataset_api=self.dataset_api, load_labeled=self.sample_from_zc_api) # FIXME extend to Zero Cost case
                 model = self._sample_new_model()
                 model.accuracy = model.arch.query(
-                    self.performance_metric, self.dataset, dataset_api=self.dataset_api
+                    self.performance_metric, self.dataset, dataset_api=self.dataset_api,
+                    df=self.df
                 )
                 candidates.append(model)
 
@@ -226,7 +227,7 @@ class Bananas(MetaOptimizer):
             # print(f" -> Time to mutate: {sum(mutates)}")
             # print(f" -> Time to instanciate: {sum(instanciate)}")
             # print(f" -> Time to assign: {sum(assign)}")
-            # print(f" -> Time to get new candidates: {tb -ta}")
+            print(f" -> Time to get new candidates: {tb -ta}")
 
         else:
             logger.info('{} is not yet supported as a acq fn optimizer'.format(
@@ -247,9 +248,15 @@ class Bananas(MetaOptimizer):
                 # print(f"Length of next batch is 0")
                 # train a neural predictor
                 # print(f"Getting train...")
+                t0 = time.time()
                 xtrain, ytrain = self._get_train()  # Pas ca le pb
+                t1 = time.time()
+                print(f"Time to train : {t1 - t0}")
                 # print(f"Getting ensemble...")
+                t0 =  time.time()
                 ensemble = self._get_ensemble()  # Pas ca le pb
+                t1 = time.time()
+                # print(f"Time to get ensemble : {t1 - t0}")
                 # print(f"Got ensemble.")
                 if self.semi:
                     # create unlabeled data and pass it to the predictor
@@ -277,21 +284,38 @@ class Bananas(MetaOptimizer):
                         ensemble.set_pre_computations(
                             unlabeled_zc_info=unlabeled_zc_info)
                 # print(f"Training ensemble...")
+                t0 = time.time()
                 ensemble.fit(xtrain, ytrain)  # Un peut lent mais pas ca le pb
+                t1 = time.time()
+                print(f"Time to train ensemble : {t1 - t0}")
                 # print(f"Trained ensemble.")
                 # define an acquisition function
+                t0 = time.time()
                 acq_fn = acquisition_function(
                     ensemble=ensemble, ytrain=ytrain, acq_fn_type=self.acq_fn_type
                 )
-
+                t1 = time.time()
+                # print(f"Time to get acq_fn : {t1 - t0}")
                 # optimize the acquisition function to output k new architectures
                 # print(f"Getting new candidates...")
+                t0 = time.time()
                 candidates = self._get_new_candidates(ytrain=ytrain)  # INVESTIGATE THIS !!!
+                t1 = time.time()
+                # print(f"Time to get new candidates : {t1 - t0}")
                 # print(f"Got new candidates.")
+                t0 = time.time()
                 self.next_batch = self._get_best_candidates(candidates, acq_fn)  # Pas ça le pb
+                t1 = time.time()
+                # print(f"Time to get best candidates : {t1 - t0}")
             # train the next architecture chosen by the neural predictor
+            t0 = time.time()
             model = self.next_batch.pop()
+            t1 = time.time()
+            # print(f"Time to pop next batch : {t1 - t0}")
+            t0 = time.time()
             self._set_scores(model)
+            t1 = time.time()
+            # print(f"Time to set scores : {t1 - t0}")
 
     def _get_best_candidates(self, candidates, acq_fn):
         if self.zc and len(self.train_data) <= self.max_zerocost:

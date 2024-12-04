@@ -87,7 +87,7 @@ class RegularizedEvolution(MetaOptimizer):
             child.arch = self.search_space.clone()
             child.arch.mutate(parent.arch, dataset_api=self.dataset_api)
             child.accuracy = child.arch.query(
-                self.performance_metric, self.dataset, dataset_api=self.dataset_api
+                self.performance_metric, self.dataset, dataset_api=self.dataset_api, df=self.df
             )
 
             # MONET SPECIFIC

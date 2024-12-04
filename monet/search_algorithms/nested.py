@@ -205,29 +205,29 @@ class NRPA(NestedMCS):
     def nrpa(self, node, level):
 
         if level == 0:
-            if (len(self.rewards) + 1) % 1000 == 0:
-                f, ax = plt.subplots(1, 1)
-                ax.plot(running_avg(self.rewards, 10))
-                f.savefig("rewards.png")
-                plt.close(f)
-                f, ax = plt.subplots(1, 1)
-                ax.plot(running_avg(self.best_reward, 10))
-                f.savefig("best_rewards.png")
-                plt.close(f)
-                node_type = type(self.root)
-                playout_node = node_type(copy.deepcopy(self.root.state), sequence=[])
-                playout_node.hash = playout_node.calculate_zobrist_hash(self.root.state.zobrist_table)
-
-                act = playout_node.get_action_tuples()
-                probas = softmax_temp(np.array([self.policy[self._code(playout_node, move)] for move in act]),
-                                      self.softmax_temp)
-
-                f, ax = plt.subplots(1, 1)
-                df = pd.DataFrame({"action": act, "probability": probas}).sort_values('probability', ascending=False)
-                sns.barplot(df.iloc[:20], x="action", y="probability", color="#3d405b")
-                plt.xticks(rotation=90)
-                f.savefig("best_actions.png")
-                plt.close(f)
+            # if (len(self.rewards) + 1) % 1000 == 0:
+            #     f, ax = plt.subplots(1, 1)
+            #     ax.plot(running_avg(self.rewards, 10))
+            #     f.savefig("rewards.png")
+            #     plt.close(f)
+            #     f, ax = plt.subplots(1, 1)
+            #     ax.plot(running_avg(self.best_reward, 10))
+            #     f.savefig("best_rewards.png")
+            #     plt.close(f)
+            #     node_type = type(self.root)
+            #     playout_node = node_type(copy.deepcopy(self.root.state), sequence=[])
+            #     playout_node.hash = playout_node.calculate_zobrist_hash(self.root.state.zobrist_table)
+            # 
+            #     act = playout_node.get_action_tuples()
+            #     probas = softmax_temp(np.array([self.policy[self._code(playout_node, move)] for move in act]),
+            #                           self.softmax_temp)
+            #
+            #     f, ax = plt.subplots(1, 1)
+            #     df = pd.DataFrame({"action": act, "probability": probas}).sort_values('probability', ascending=False)
+            #     sns.barplot(df.iloc[:20], x="action", y="probability", color="#3d405b")
+            #     plt.xticks(rotation=90)
+            #     f.savefig("best_actions.png")
+            #     plt.close(f)
             #     print(f"[{len(self.rewards)}/{self.n_iter ** self.level}] Best reward: {max(self.best_reward)}")
             
             score, sequence = self._playout(self.root)
