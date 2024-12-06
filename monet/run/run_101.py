@@ -186,8 +186,8 @@ if __name__ == '__main__':
                     "population_size": 100
                 },
             })
-        
-    }
+
+         }
     }
 
     parser = argparse.ArgumentParser(description="Run NAS algorithms")
