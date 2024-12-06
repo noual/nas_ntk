@@ -180,7 +180,7 @@ def get_natsbenchsize_api(dataset=None):
             Please install nats_bench from https://github.com/D-X-Y/NATS-Bench')
 
     # Create the API for size search space
-    api = create(None, 'sss', fast_mode=True, verbose=True)
+    api = create(None, 'sss', fast_mode=True, verbose=False)
     return api
 
 

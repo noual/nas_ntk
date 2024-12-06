@@ -1,7 +1,7 @@
 df_path: ../../monet/csv/nasbench201.csv
 dataset: cifar10
 search:
-  level: 2
+  level: 3
   nrpa_alpha: 0.1
   softmax_temp: 2
   playouts_per_selection: 1

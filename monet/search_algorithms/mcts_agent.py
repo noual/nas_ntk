@@ -12,6 +12,7 @@ from monet.search_spaces.nasbench201_node import NASBench201Cell
 from monet.search_spaces.nasbench301_node import DARTSState, DARTSCell
 from naslib.search_spaces.core import Metric
 from naslib.utils import get_dataset_api
+from nasbench import api as ModelSpecAPI
 
 sys.path.append("..")
 
@@ -51,6 +52,7 @@ class MCTSAgent:
             assert dataset in ["cifar10"], "Only CIFAR10 is supported"
             self.root = Node(state=NASBench101Cell(7))
             self.api = get_dataset_api(search_space, dataset)["nb101_data"]
+            self._playout = self._playout_101
 
         elif search_space == "nasbench301":
             if isinstance(self, UCT):
@@ -84,6 +86,9 @@ class MCTSAgent:
         pass
 
     def _playout(self, node: Node):
+        pass
+
+    def _playout_101(self, node: Node):
         pass
 
     def _backpropagation(self, node: Node, result: float):
@@ -176,6 +181,34 @@ class UCT(MCTSAgent):
             playout_node.play_action(random_action)
             # print(f"[PLAYOUT] Playing random action {random_action}")
 
+        reward = self._get_reward(playout_node)
+
+        del playout_node
+        return reward
+
+    def _playout_101(self, node: Node):
+        """
+        Crée un playout aléatoire et renvoie l'accuracy sur le modèle entraîné
+        :return:
+        """
+        assert isinstance(node.state, NASBench101Cell), "Node must be a NASBench101Cell"
+        is_valid = False
+        while not is_valid:
+            node_type = type(node)
+            playout_node = node_type(state=copy.deepcopy(node.state))
+
+            while not playout_node.is_terminal():
+                available_actions = playout_node.get_action_tuples()
+                random_action = available_actions[np.random.randint(len(available_actions))]
+                playout_node.play_action(random_action)
+                # print(f"[PLAYOUT] Playing random action {random_action}")
+            adjacency, operations = playout_node.state.operations_and_adjacency()
+            model_spec = ModelSpecAPI.ModelSpec(
+                # Adjacency matrix of the module
+                matrix=adjacency,
+                # Operations at the vertices of the module, matches order of matrix
+                ops=operations)
+            is_valid = self.api.is_valid(model_spec)
         reward = self._get_reward(playout_node)
 
         del playout_node
@@ -331,3 +364,11 @@ class RAVE(UCT):
                 temp_node.amaf.append(result)
         return self._backpropagation(node.parent, result)  # Fonction récursive
 
+if __name__ == '__main__':
+    for i in range(1000):
+        uct = RAVE(CfgNode.load_cfg(open('../../naslib/configs/uct.yaml')))
+        uct.adapt_search_space("nasbench101", "cifar10")
+        uct.df=None
+        node = Node(NASBench101Cell(7))
+        reward = uct._playout(node)
+        print(reward)

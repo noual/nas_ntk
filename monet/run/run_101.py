@@ -23,7 +23,7 @@ from naslib.search_spaces.nasbench101.graph import NasBench101SearchSpace
 
 SEARCH_SPACE = "nasbench101"
 DATASET = "cifar10"
-N_ITER = 3500
+N_ITER = 5000
 
 def run_mcts(algorithm, config):
     config.search.n_iter = N_ITER
@@ -119,12 +119,12 @@ if __name__ == '__main__':
         "NRPA_L3": {
             "algorithm": NRPA,
             "config": CfgNode({
-                "df_path": "../../monet/csv/nasbench101.csv",
+                "df_path": "none",
                 "dataset": "cifar10",
                 "search": {
                     "level": 3,
-                    "nrpa_alpha": 0.1,
-                    "softmax_temp": 2,
+                    "nrpa_alpha": 0.01,
+                    "softmax_temp": 1,
                     "playouts_per_selection": 1,
                     "C": 0.1,
                     "n_iter": 2200,
@@ -142,13 +142,13 @@ if __name__ == '__main__':
                     "epochs": 200,
                     "fidelity": 1
                 },
-                "df_path": "../../monet/csv/nasbench101.csv"
+                "df_path": "none"
             })
         },
         "UCT": {
             "algorithm": UCT,
             "config": CfgNode({
-                "df_path": "../../monet/csv/nasbench101.csv",
+                "df_path": "none",
                 "dataset": "cifar10",
                 "search": {
                     "playouts_per_selection": 1,
@@ -163,7 +163,7 @@ if __name__ == '__main__':
         "RAVE": {
             "algorithm": RAVE,
             "config": CfgNode({
-                "df_path": "../../monet/csv/nasbench101.csv",
+                "df_path": "none",
                 "dataset": "cifar10",
                 "search": {
                     "playouts_per_selection": 1,
@@ -179,29 +179,29 @@ if __name__ == '__main__':
             "algorithm": RegularizedEvolution,
             "config": CfgNode({
                 "dataset": "cifar10",
-                "df_path": "../../monet/csv/nasbench101.csv",
+                "df_path": "none",
                 "search": {
                     "epochs": N_API_CALLS,
                     "sample_size": 25,
                     "population_size": 100
                 },
             })
-        }
+        
+    }
     }
 
-    if __name__ == "__main__":
-        parser = argparse.ArgumentParser(description="Run NAS algorithms")
-        parser.add_argument("--output_file", type=str, default="results_local", help="Output file for results")
-        # processes = []
-        # for i in range(8):  # Create 4 processes
-        #     p = Process(target=run_all, args=(algorithms,))
-        #     p.start()
-        #     processes.append(p)
-        #
-        # for p in processes:
-        #     p.join()
-        # n = multiprocessing.cpu_count()  # guard against counting only active cores
-        # with multiprocessing.Pool(n) as pool:
-        #     pool.map(run_all, algorithms)
+    parser = argparse.ArgumentParser(description="Run NAS algorithms")
+    parser.add_argument("--output_file", type=str, default="results_local", help="Output file for results")
+    # processes = []
+    # for i in range(8):  # Create 4 processes
+    #     p = Process(target=run_all, args=(algorithms,))
+    #     p.start()
+    #     processes.append(p)
+    #
+    # for p in processes:
+    #     p.join()
+    # n = multiprocessing.cpu_count()  # guard against counting only active cores
+    # with multiprocessing.Pool(n) as pool:
+    #     pool.map(run_all, algorithms)
 
-        run_all(algorithms, output_file=parser.parse_args().output_file)
+    run_all(algorithms, output_file=parser.parse_args().output_file)

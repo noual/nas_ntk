@@ -202,7 +202,8 @@ class NASBench(object):
                              % self.valid_epochs)
 
     fixed_stat, computed_stat = self.get_metrics_from_spec(model_spec)
-    sampled_index = random.randint(0, self.config['num_repeats'] - 1)
+    sampled_index = 2
+    # sampled_index = random.randint(0, self.config['num_repeats'] - 1)
     computed_stat = computed_stat[epochs][sampled_index]
 
     data = {}

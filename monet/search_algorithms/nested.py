@@ -8,9 +8,12 @@ import numpy as np
 from tqdm import tqdm
 import pandas as pd
 import seaborn as sns
+from yacs.config import CfgNode
 
+from monet.search_spaces.nasbench101_node import NASBench101Cell
 from naslib.search_spaces.core import Metric
 from .mcts_agent import MCTSAgent
+from nasbench import api as ModelSpecAPI
 from monet.utils.helpers import running_avg
 from ..node import Node
 
@@ -196,6 +199,54 @@ class NRPA(NestedMCS):
             sequence.append(action)
             playout_node.play_action(action)
             playout_node.hash = playout_node.calculate_zobrist_hash(self.root.state.zobrist_table)
+
+        reward = playout_node.get_reward(self.api, metric=Metric.VAL_ACCURACY, dataset="cifar10", df=self.df)
+
+        del playout_node
+        return reward, sequence
+
+    def _playout_101(self, node: Node):
+        node_type = type(node)
+        playout_node = node_type(state=copy.deepcopy(node.state), move=copy.deepcopy(node.move),
+                                 parent=copy.deepcopy(node.parent), sequence=copy.deepcopy(node.sequence))
+        sequence = playout_node.sequence
+        playout_node.hash = playout_node.calculate_zobrist_hash(self.root.state.zobrist_table)
+        is_valid = False
+        while not is_valid:
+            playout_node = copy.deepcopy(node)
+            sequence = playout_node.sequence
+            while not playout_node.is_terminal():
+
+                # Vérifier si la policy a une valeur pour ce noeud
+                if self._code(playout_node, playout_node.move) not in self.policy:
+                    self.policy[self._code(playout_node, playout_node.move)] = 0
+
+                available_actions = playout_node.get_action_tuples()
+                probabilities = []
+                for move in available_actions:
+                    if self._code(playout_node, move) not in self.policy:
+                        self.policy[self._code(playout_node, move)] = 0
+
+                policy_values = [self.policy[self._code(playout_node, move)] for move in
+                                 available_actions]  # Calcule la probabilité de sélectionner chaque action avec la policy
+
+                probabilities = softmax_temp(np.array(policy_values), self.softmax_temp)
+                # if len(self.best_reward) % 100 == 0:
+                #     pprint(list(zip(available_actions, pplayout_node# Used because available_actions is not 1-dimensional
+                action_index = np.random.choice(np.arange(len(available_actions)), p=probabilities)
+                action = available_actions[action_index]  # Used because available_actions is not 1-dimensional
+
+                sequence.append(action)
+                playout_node.play_action(action)
+                playout_node.hash = playout_node.calculate_zobrist_hash(self.root.state.zobrist_table)
+
+            adjacency, operations = playout_node.state.operations_and_adjacency()
+            model_spec = ModelSpecAPI.ModelSpec(
+                # Adjacency matrix of the module
+                matrix=adjacency,
+                # Operations at the vertices of the module, matches order of matrix
+                ops=operations)
+            is_valid = self.api.is_valid(model_spec)
 
         reward = playout_node.get_reward(self.api, metric=Metric.VAL_ACCURACY, dataset="cifar10", df=self.df)
 
