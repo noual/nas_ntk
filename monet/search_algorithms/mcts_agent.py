@@ -193,7 +193,12 @@ class UCT(MCTSAgent):
         """
         assert isinstance(node.state, NASBench101Cell), "Node must be a NASBench101Cell"
         is_valid = False
+        i = 0
         while not is_valid:
+            i += 1
+            if i > 100:
+                # print("Too many playouts, returning 0")
+                return 0
             node_type = type(node)
             playout_node = node_type(state=copy.deepcopy(node.state))
 

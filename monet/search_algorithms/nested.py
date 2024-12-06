@@ -212,7 +212,12 @@ class NRPA(NestedMCS):
         sequence = playout_node.sequence
         playout_node.hash = playout_node.calculate_zobrist_hash(self.root.state.zobrist_table)
         is_valid = False
+        i = 0
         while not is_valid:
+            i += 1
+            if i > 100:
+                # print("Too many playouts, returning 0")
+                return 0, sequence
             playout_node = copy.deepcopy(node)
             sequence = playout_node.sequence
             while not playout_node.is_terminal():
