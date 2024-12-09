@@ -9,8 +9,6 @@ from tqdm import tqdm
 from yacs.config import CfgNode
 import os
 
-from naslib.search_spaces import NasBench301SearchSpace
-
 print(os.getcwd())
 import sys
 sys.path.append("../..")
@@ -22,7 +20,7 @@ from monet.utils.helpers import configure_seaborn
 from naslib.optimizers import RegularizedEvolution, Bananas, RandomSearch
 from naslib.search_spaces.core import Metric
 from naslib.utils import get_dataset_api
-from naslib.search_spaces.nasbench101.graph import NasBench101SearchSpace
+from naslib.search_spaces.nasbench301.graph import NasBench301SearchSpace
 
 SEARCH_SPACE = "nasbench301"
 DATASET = "cifar10"
