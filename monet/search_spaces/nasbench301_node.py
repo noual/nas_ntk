@@ -1,7 +1,7 @@
 import itertools
 import os
 from collections import namedtuple
-from random import random
+import random
 from typing import Tuple
 
 import nasbench301 as nb  # NB301

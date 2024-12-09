@@ -116,7 +116,7 @@ class NRPA(NestedMCS):
         self.softmax_temp = config.search.softmax_temp
         self.policy = {}
         # Change the number of iterations for each level
-        self.n_iter = int(np.power(self.n_iter, 1 / self.level))
+        self.n_iter = int(np.ceil(np.power(self.n_iter, 1 / self.level)))
 
     def adapt_search_space(self, search_space, dataset):
         super().adapt_search_space(search_space, dataset)

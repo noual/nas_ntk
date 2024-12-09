@@ -60,8 +60,7 @@ class MCTSAgent:
                 self.n_iter = self.n_iter // 16
             assert dataset in ["cifar10"], "Only CIFAR10 is supported"
             self.root = Node(state= DARTSState((DARTSCell(),
-                                                DARTSCell())
-                                               )
+                                                DARTSCell()))
                              )
             self.api = get_dataset_api(search_space, dataset)
 

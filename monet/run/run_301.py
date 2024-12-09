@@ -8,6 +8,9 @@ from matplotlib import pyplot as plt
 from tqdm import tqdm
 from yacs.config import CfgNode
 import os
+
+from naslib.search_spaces import NasBench301SearchSpace
+
 print(os.getcwd())
 import sys
 sys.path.append("../..")
@@ -21,9 +24,9 @@ from naslib.search_spaces.core import Metric
 from naslib.utils import get_dataset_api
 from naslib.search_spaces.nasbench101.graph import NasBench101SearchSpace
 
-SEARCH_SPACE = "nasbench101"
+SEARCH_SPACE = "nasbench301"
 DATASET = "cifar10"
-N_ITER = 5000
+N_ITER = 10000
 
 def run_mcts(algorithm, config):
     config.search.n_iter = N_ITER
@@ -35,8 +38,8 @@ def run_mcts(algorithm, config):
 def run_naslib(algorithm, config):
     config.search.epochs = N_ITER
     alg = algorithm(config)
-    api = get_dataset_api("nasbench101", 'cifar10')
-    alg.adapt_search_space(NasBench101SearchSpace())
+    api = get_dataset_api(SEARCH_SPACE, DATASET)
+    alg.adapt_search_space(NasBench301SearchSpace())
     alg.dataset_api = api
     for epoch in tqdm(range(config.search.epochs)):
         alg.new_epoch(epoch)
@@ -72,7 +75,7 @@ def run_all(algo_dict, output_file="results_local"):
                     "score": score
                 })
         df = pd.DataFrame(all_results)
-        df.to_csv(f"nasbench101_{output_file}.csv")
+        df.to_csv(f"nasbench301_{output_file}.csv")
 
 if __name__ == '__main__':
     configure_seaborn()
@@ -123,8 +126,8 @@ if __name__ == '__main__':
                 "dataset": "cifar10",
                 "search": {
                     "level": 3,
-                    "nrpa_alpha": 0.01,
-                    "softmax_temp": 1,
+                    "nrpa_alpha": 1,
+                    "softmax_temp": 2,
                     "playouts_per_selection": 1,
                     "C": 0.1,
                     "n_iter": 2200,
@@ -134,17 +137,17 @@ if __name__ == '__main__':
                 "seed": 0
             })
         },
-        # "RS": {
-        #     "algorithm": RandomSearch,
-        #     "config": CfgNode({
-        #         "dataset": "cifar10",
-        #         "search": {
-        #             "epochs": 200,
-        #             "fidelity": 1
-        #         },
-        #         "df_path": "none"
-        #     })
-        # },
+        "RS": {
+            "algorithm": RandomSearch,
+            "config": CfgNode({
+                "dataset": "cifar10",
+                "search": {
+                    "epochs": 200,
+                    "fidelity": 1
+                },
+                "df_path": "none"
+            })
+        },
         "UCT": {
             "algorithm": UCT,
             "config": CfgNode({

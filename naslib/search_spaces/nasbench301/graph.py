@@ -348,7 +348,8 @@ class NasBench301SearchSpace(Graph):
             path: str = None,
             epoch: int = -1,
             full_lc: bool = False,
-            dataset_api: dict = None) -> Union[float, dict]:
+            dataset_api: dict = None,
+            df = None) -> Union[float, dict]:
         """
         Query results from nasbench 301
         """
