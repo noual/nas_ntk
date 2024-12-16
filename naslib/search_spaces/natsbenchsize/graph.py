@@ -19,6 +19,7 @@ class NATSBenchSizeSearchSpace(Graph):
         super().__init__()
         self.channel_candidates = [8*i for i in range(1, 9)]
         self.channels = [8, 8, 8, 8, 8]
+        self.instantiate_model = False  # MONET SPECIFIC
 
         self.space_name = "natsbenchsizesearchspace"
         # Graph not implemented
@@ -32,7 +33,8 @@ class NATSBenchSizeSearchSpace(Graph):
         full_lc=False,
         dataset_api=None,
         hp=90,
-        is_random=False
+        is_random=False,
+        df=None
     ):
         """
         Query results from natsbench
@@ -55,9 +57,26 @@ class NATSBenchSizeSearchSpace(Graph):
         ], "Unknown dataset: {}".format(dataset)
         assert epoch >= -1 and epoch < hp
         assert hp in [1, 12, 90], "hp must be 1, 12 or 90"
+
+        # MONET SPECIFIC
+        if df is not None:
+            # TODO: Remplacer VAL_ACCURACY par TEST_ACCUR
+            # TODO: Remplacer cifar10 par cifar100
+            assert metric == Metric.VAL_ACCURACY, "Only TEST_ACCURACY is supported for now."
+            assert dataset == "cifar100", "Only CIFAR-100 is supported for now."
+            if metric == Metric.VAL_ACCURACY and dataset == "cifar100":
+                metric_to_fetch = "cifar_100_test_accuracy"
+            arch_str = "{}:{}:{}:{}:{}".format(*list(self.get_hash()))
+            row = df.loc[df["arch_channels"] == arch_str]
+            reward = row[metric_to_fetch].item()
+            return reward
+
         if dataset=='cifar10':
             assert metric not in [Metric.VAL_ACCURACY, Metric.VAL_LOSS, Metric.VAL_TIME],\
             "Validation metrics not available for CIFAR-10"
+
+
+
 
         metric_to_natsbench = {
             Metric.TRAIN_ACCURACY: "train-accuracy",
@@ -111,7 +130,7 @@ class NATSBenchSizeSearchSpace(Graph):
         # TODO: change it to set_spec on all search spaces
         self.set_channels(channels)
 
-    def sample_random_architecture(self, dataset_api=None):
+    def sample_random_architecture(self, dataset_api=None, **kwargs):
         """
         Randomly sample an architecture
         """

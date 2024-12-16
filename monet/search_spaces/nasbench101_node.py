@@ -1,3 +1,6 @@
+import copy
+import random
+
 import numpy as np
 from nasbench import api as ModelSpecAPI
 
@@ -47,6 +50,8 @@ class NASBench101Cell(NASBench201Cell):
         self.N_NODES = 7
         self.ADJACENCY_MATRIX_SIZE = self.N_NODES ** 2
         self.N_OPERATIONS = 6
+        self.playable_operations = ['conv3x3-bn-relu', 'conv1x1-bn-relu', 'maxpool3x3']  # Les labels qu'on peut assigner
+
 
     def get_hash(self):
         return convert_spec_to_tuple({"matrix": self.adjacency_matrix(), "ops": [v.label for v in self.vertices]})
@@ -201,3 +206,30 @@ class NASBench101Cell(NASBench201Cell):
         for index in sorted(extraneous, reverse=True):
             del ops[index]
         return adjacency_matrix, ops
+
+    def mutate(self, api, mutation_rate=1):
+        original_matrix, original_ops = copy.deepcopy(self.operations_and_adjacency())
+        while True:
+            new_matrix, new_ops = copy.deepcopy(self.operations_and_adjacency())
+            edge_mutation_probability = mutation_rate / self.N_NODES
+            for src in range(0, self.N_NODES-1):
+                for dst in range(src+1, self.N_NODES):
+                    if random.random() < edge_mutation_probability:
+                        new_matrix[src, dst] = 1 - new_matrix[src, dst]
+
+            operation_mutation_probability = mutation_rate / self.N_OPERATIONS
+            for ind in range(0, self.N_NODES-1):
+                if random.random() < operation_mutation_probability:
+                    available = [op for op in self.playable_operations if op != new_ops[ind]]
+                    new_ops[ind] = np.random.choice(self.vertices[0].playable_operations)
+            new_spec = ModelSpecAPI.ModelSpec(
+                # Adjacency matrix of the module
+                matrix=new_matrix,
+                # Operations at the vertices of the module, matches order of matrix
+                ops=new_ops)
+            if api.is_valid(new_spec):
+                break
+        for i, vertice in enumerate(self.vertices):
+            for j, connexion in vertice.edges.items():
+                vertice.edges[j] = new_matrix[j, i]
+            vertice.label = new_ops[i]

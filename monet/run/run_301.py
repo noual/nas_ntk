@@ -9,11 +9,15 @@ from tqdm import tqdm
 from yacs.config import CfgNode
 import os
 
+from monet.search_algorithms.evolutionary import EvolutionaryAlgorithm
+
 print(os.getcwd())
 import sys
 sys.path.append("../..")
 from monet.node import Node
 from monet.search_algorithms.mcts_agent import UCT, RAVE, MCTSAgent
+from monet.search_algorithms.regularized_evolution import RegularizedEvolution as MonetRegularizedEvolution
+from monet.search_algorithms.random_search import RandomSearch as MonetRandomSearch
 from monet.search_algorithms.nested import NRPA
 from monet.search_spaces.nasbench101_node import NASBench101Cell
 from monet.utils.helpers import configure_seaborn
@@ -24,7 +28,7 @@ from naslib.search_spaces.nasbench301.graph import NasBench301SearchSpace
 
 SEARCH_SPACE = "nasbench301"
 DATASET = "cifar10"
-N_ITER = 10000
+N_ITER = 20**3
 
 def run_mcts(algorithm, config):
     config.search.n_iter = N_ITER
@@ -50,7 +54,7 @@ def run_once(algo_dict):
         optimizer = properties["algorithm"]
         config = properties["config"]
 
-        if issubclass(optimizer, MCTSAgent):
+        if issubclass(optimizer, MCTSAgent) or issubclass(optimizer, EvolutionaryAlgorithm):
             best_reward = run_mcts(optimizer, config)
         else:
             best_reward = run_naslib(optimizer, config)
@@ -88,8 +92,8 @@ if __name__ == '__main__':
         #         "dataset": "cifar10",
         #         "search": {
         #             "level": 1,
-        #             "nrpa_alpha": 0.1,
-        #             "softmax_temp": 2,
+        #             "nrpa_alpha": 1,
+        #             "softmax_temp": 1,
         #             "playouts_per_selection": 1,
         #             "C": 0.1,
         #             "n_iter": 2200,
@@ -106,7 +110,43 @@ if __name__ == '__main__':
         #         "dataset": "cifar10",
         #         "search": {
         #             "level": 2,
-        #             "nrpa_alpha": 0.1,
+        #             "nrpa_alpha": 1,
+        #             "softmax_temp": 1,
+        #             "playouts_per_selection": 1,
+        #             "C": 0.1,
+        #             "n_iter": 2200,
+        #             "rave_b": 0.1,
+        #         },
+        #         "disable_tqdm": "true",
+        #         "seed": 0
+        #     })
+        # },
+        # "NRPA_L3": {
+        #     "algorithm": NRPA,
+        #     "config": CfgNode({
+        #         "df_path": "none",
+        #         "dataset": "cifar10",
+        #         "search": {
+        #             "level": 3,
+        #             "nrpa_alpha": .5,
+        #             "softmax_temp": 1,
+        #             "playouts_per_selection": 1,
+        #             "C": 0.1,
+        #             "n_iter": 2200,
+        #             "rave_b": 0.1,
+        #         },
+        #         "disable_tqdm": "true",
+        #         "seed": 0
+        #     })
+        # },
+        # "NRPA_L3-2": {
+        #     "algorithm": NRPA,
+        #     "config": CfgNode({
+        #         "df_path": "none",
+        #         "dataset": "cifar10",
+        #         "search": {
+        #             "level": 3,
+        #             "nrpa_alpha": 1,
         #             "softmax_temp": 2,
         #             "playouts_per_selection": 1,
         #             "C": 0.1,
@@ -125,7 +165,7 @@ if __name__ == '__main__':
                 "search": {
                     "level": 3,
                     "nrpa_alpha": 1,
-                    "softmax_temp": 2,
+                    "softmax_temp": 1,
                     "playouts_per_selection": 1,
                     "C": 0.1,
                     "n_iter": 2200,
@@ -136,10 +176,11 @@ if __name__ == '__main__':
             })
         },
         "RS": {
-            "algorithm": RandomSearch,
+            "algorithm": MonetRandomSearch,
             "config": CfgNode({
                 "dataset": "cifar10",
                 "search": {
+                    "n_iter": N_API_CALLS,
                     "epochs": 200,
                     "fidelity": 1
                 },
@@ -177,11 +218,12 @@ if __name__ == '__main__':
             })
         },
         "RE": {
-            "algorithm": RegularizedEvolution,
+            "algorithm": MonetRegularizedEvolution,
             "config": CfgNode({
                 "dataset": "cifar10",
                 "df_path": "none",
                 "search": {
+                    "n_iter": N_API_CALLS,
                     "epochs": N_API_CALLS,
                     "sample_size": 25,
                     "population_size": 100

@@ -9,40 +9,39 @@ from tqdm import tqdm
 from yacs.config import CfgNode
 import os
 
+from naslib.search_spaces import NATSBenchSizeSearchSpace
+
 print(os.getcwd())
 import sys
-
 sys.path.append("../..")
 from monet.node import Node
 from monet.search_algorithms.mcts_agent import UCT, RAVE, MCTSAgent
 from monet.search_algorithms.nested import NRPA
-from monet.search_spaces.nasbench201_node import NASBench201Cell
 from monet.utils.helpers import configure_seaborn
 from naslib.optimizers import RegularizedEvolution, Bananas, RandomSearch
 from naslib.search_spaces.core import Metric
 from naslib.utils import get_dataset_api
-from naslib.search_spaces.nasbench201.graph import NasBench201SearchSpace
 
-SEARCH_SPACE = "nasbench201"
-DATASET = "cifar10"
-
+SEARCH_SPACE = "natsbenchsize"
+DATASET = "cifar100"
+N_ITER = 3000
 
 def run_mcts(algorithm, config):
+    config.search.n_iter = N_ITER
     alg = algorithm(config)
     alg.adapt_search_space(SEARCH_SPACE, DATASET)
     alg.main_loop()
     return alg.best_reward
 
-
 def run_naslib(algorithm, config):
+    config.search.epochs = N_ITER
     alg = algorithm(config)
-    api = get_dataset_api("nasbench201", 'cifar10')
-    alg.adapt_search_space(NasBench201SearchSpace())
+    api = get_dataset_api(SEARCH_SPACE, DATASET)
+    alg.adapt_search_space(NATSBenchSizeSearchSpace())
     alg.dataset_api = api
     for epoch in tqdm(range(config.search.epochs)):
         alg.new_epoch(epoch)
     return alg.best_metric
-
 
 def run_once(algo_dict):
     rewards = {}
@@ -57,7 +56,6 @@ def run_once(algo_dict):
             best_reward = run_naslib(optimizer, config)
         rewards[name] = best_reward
     return rewards
-
 
 def run_all(algo_dict, output_file="results_local"):
     print(algo_dict == algorithms)
@@ -75,8 +73,7 @@ def run_all(algo_dict, output_file="results_local"):
                     "score": score
                 })
         df = pd.DataFrame(all_results)
-        df.to_csv(f"nasbench201_{output_file}.csv")
-
+        df.to_csv(f"natsbenchsize_{output_file}.csv")
 
 if __name__ == '__main__':
     configure_seaborn()
@@ -87,7 +84,7 @@ if __name__ == '__main__':
         # "NRPA_L1": {
         #     "algorithm": NRPA,
         #     "config": CfgNode({
-        #         "df_path": "../../monet/csv/nasbench201.csv",
+        #         "df_path": "../../monet/csv/nasbench101.csv",
         #         "dataset": "cifar10",
         #         "search": {
         #             "level": 1,
@@ -105,7 +102,7 @@ if __name__ == '__main__':
         # "NRPA_L2": {
         #     "algorithm": NRPA,
         #     "config": CfgNode({
-        #         "df_path": "../../monet/csv/nasbench201.csv",
+        #         "df_path": "../../monet/csv/nasbench101.csv",
         #         "dataset": "cifar10",
         #         "search": {
         #             "level": 2,
@@ -123,12 +120,12 @@ if __name__ == '__main__':
         "NRPA_L3": {
             "algorithm": NRPA,
             "config": CfgNode({
-                "df_path": "../../monet/csv/nasbench201.csv",
-                "dataset": "cifar10",
+                "df_path": "../../monet/csv/natsbenchsize.csv",
+                "dataset": "cifar100",
                 "search": {
                     "level": 3,
-                    "nrpa_alpha": 0.1,
-                    "softmax_temp": 1,
+                    "nrpa_alpha": .1,
+                    "softmax_temp": 2,
                     "playouts_per_selection": 1,
                     "C": 0.1,
                     "n_iter": 2200,
@@ -138,22 +135,22 @@ if __name__ == '__main__':
                 "seed": 0
             })
         },
-        # "RS": {
-        #     "algorithm": RandomSearch,
-        #     "config": CfgNode({
-        #         "dataset": "cifar10",
-        #         "search": {
-        #             "epochs": 200,
-        #             "fidelity": 1
-        #         },
-        #         "df_path": "../../monet/csv/nasbench201.csv"
-        #     })
-        # },
+        "RS": {
+            "algorithm": RandomSearch,
+            "config": CfgNode({
+                "dataset": "cifar100",
+                "search": {
+                    "epochs": 200,
+                    "fidelity": 1
+                },
+                "df_path": "../../monet/csv/natsbenchsize.csv",
+            })
+        },
         "UCT": {
             "algorithm": UCT,
             "config": CfgNode({
-                "df_path": "../../monet/csv/nasbench201.csv",
-                "dataset": "cifar10",
+                "df_path": "../../monet/csv/natsbenchsize.csv",
+                "dataset": "cifar100",
                 "search": {
                     "playouts_per_selection": 1,
                     "C": 0.1,
@@ -167,8 +164,8 @@ if __name__ == '__main__':
         "RAVE": {
             "algorithm": RAVE,
             "config": CfgNode({
-                "df_path": "../../monet/csv/nasbench201.csv",
-                "dataset": "cifar10",
+                "df_path": "../../monet/csv/natsbenchsize.csv",
+                "dataset": "cifar100",
                 "search": {
                     "playouts_per_selection": 1,
                     "C": 0.1,
@@ -179,18 +176,19 @@ if __name__ == '__main__':
 
             })
         },
-        # "RE": {
-        #     "algorithm": RegularizedEvolution,
-        #     "config": CfgNode({
-        #         "dataset": "cifar10",
-        #         "search": {
-        #             "epochs": N_API_CALLS,
-        #             "sample_size": 25,
-        #             "population_size": 100
-        #         },
-        #         "df_path": "../csv/nasbench201.csv"
-        #     })
-        # },
+        "RE": {
+            "algorithm": RegularizedEvolution,
+            "config": CfgNode({
+                "dataset": "cifar100",
+                "df_path": "../../monet/csv/natsbenchsize.csv",
+                "search": {
+                    "epochs": N_API_CALLS,
+                    "sample_size": 25,
+                    "population_size": 50
+                },
+            })
+
+         },
         # "BANANAS": {
         #     "algorithm": Bananas,
         #     "config": CfgNode({
@@ -208,25 +206,24 @@ if __name__ == '__main__':
         #             "num_candidates": 50,
         #             "epochs": N_API_CALLS,
         #         },
-        #         "dataset": "cifar10",
-        #         "df_path": "../csv/nasbench201.csv"
+        #         "dataset": "cifar100",
+        #         "df_path": "../../monet/csv/natsbenchsize.csv",
         #     })
         # }
     }
 
-    if __name__ == "__main__":
-        parser = argparse.ArgumentParser(description="Run NAS algorithms")
-        parser.add_argument("--output_file", type=str, default="results_local", help="Output file for results")
-        # processes = []
-        # for i in range(8):  # Create 4 processes
-        #     p = Process(target=run_all, args=(algorithms,))
-        #     p.start()
-        #     processes.append(p)
-        #
-        # for p in processes:
-        #     p.join()
-        # n = multiprocessing.cpu_count()  # guard against counting only active cores
-        # with multiprocessing.Pool(n) as pool:
-        #     pool.map(run_all, algorithms)
+    parser = argparse.ArgumentParser(description="Run NAS algorithms")
+    parser.add_argument("--output_file", type=str, default="results_local", help="Output file for results")
+    # processes = []
+    # for i in range(8):  # Create 4 processes
+    #     p = Process(target=run_all, args=(algorithms,))
+    #     p.start()
+    #     processes.append(p)
+    #
+    # for p in processes:
+    #     p.join()
+    # n = multiprocessing.cpu_count()  # guard against counting only active cores
+    # with multiprocessing.Pool(n) as pool:
+    #     pool.map(run_all, algorithms)
 
-        run_all(algorithms, output_file=parser.parse_args().output_file)
+    run_all(algorithms, output_file=parser.parse_args().output_file)

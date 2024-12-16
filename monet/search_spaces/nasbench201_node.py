@@ -165,20 +165,28 @@ class NASBench201Cell:
         return hash
 
     def initialize_zobrist_table(self):
-        """
-        Initialize the Zobrist table for the cell.
-        """
         self.zobrist_table = []
         for i in range(self.ADJACENCY_MATRIX_SIZE):
             adjacency_table = []
-            for connexion in range(2):  # Connextion or no connexion
+            for operation in range(self.N_OPERATIONS):
                 adjacency_table.append(random.randint(0, 2 ** 64))
             self.zobrist_table.append(adjacency_table)
-        for i in range(self.N_NODES):
-            operation_table = []
-            for operation in range(self.N_OPERATIONS):
-                operation_table.append(random.randint(0, 2 ** 64))
-            self.zobrist_table.append(operation_table)
+
+    # def initialize_zobrist_table(self):
+    #     """
+    #     Initialize the Zobrist table for the cell.
+    #     """
+    #     self.zobrist_table = []
+    #     for i in range(self.ADJACENCY_MATRIX_SIZE):
+    #         adjacency_table = []
+    #         for connexion in range(2):  # Connextion or no connexion
+    #             adjacency_table.append(random.randint(0, 2 ** 64))
+    #         self.zobrist_table.append(adjacency_table)
+    #     for i in range(self.N_NODES):
+    #         operation_table = []
+    #         for operation in range(self.N_OPERATIONS):
+    #             operation_table.append(random.randint(0, 2 ** 64))
+    #         self.zobrist_table.append(operation_table)
 
     def get_reward(self, api, metric=Metric.VAL_ACCURACY, dataset="cifar10", df=None):
         """
@@ -248,6 +256,19 @@ class NASBench201Cell:
                 g.edge(in_, out_, label=v, fillcolor="gray")
 
         g.render(filename, view=True)
+
+    def sample_random(self):
+        while not self.is_complete():
+            actions = self.get_action_tuples()
+            random_action = np.random.randint(len(actions))
+            action = actions[random_action]
+            self.play_action(*action)
+
+    def mutate(self):
+        vertice = random.choice(range(1, self.n_vertices))
+        id = random.choice(range(vertice))
+        action = random.choice([op for op in self.OPERATIONS if op!=self.vertices[vertice].actions[id]])
+        self.play_action(vertice, id, action)
 
 if __name__ == '__main__':
     from naslib.utils import get_dataset_api

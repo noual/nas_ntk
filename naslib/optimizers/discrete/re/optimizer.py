@@ -93,7 +93,6 @@ class RegularizedEvolution(MetaOptimizer):
             # MONET SPECIFIC
             self.metrics.append(child.accuracy)
             self.best_metric.append(max(self.metrics))
-
             self.population.append(child)
             self._update_history(child)
 

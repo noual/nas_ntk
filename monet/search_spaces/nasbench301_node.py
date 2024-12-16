@@ -1,3 +1,4 @@
+import copy
 import itertools
 import os
 from collections import namedtuple
@@ -8,7 +9,8 @@ import nasbench301 as nb  # NB301
 import numpy as np
 
 from graphviz import Digraph
-from naslib.search_spaces.nasbench301.conversions import convert_genotype_to_naslib
+from naslib.search_spaces.nasbench301.conversions import convert_genotype_to_naslib, convert_genotype_to_compact, \
+    make_compact_immutable, convert_compact_to_genotype, make_compact_mutable
 
 from naslib.search_spaces import NasBench301SearchSpace
 
@@ -166,8 +168,46 @@ class DARTSState:
     def is_complete(self):
         return all([s.is_complete() for s in self.state])
 
-    def mutate(self):
-        pass
+    def mutate(self, mutation_rate=1):
+        Genotype = namedtuple('Genotype', 'normal normal_concat reduce reduce_concat')
+        genotype_config = Genotype(
+            normal=self.state[0].to_genotype(),
+            normal_concat=[2, 3, 4, 5],
+            reduce=self.state[1].to_genotype(),
+            reduce_concat=[2, 3, 4, 5]
+        )
+        parent_compact = convert_genotype_to_compact(genotype_config)
+        parent_compact = make_compact_mutable(parent_compact)
+        compact = copy.deepcopy(parent_compact)
+        while True:
+            for _ in range(int(mutation_rate)):
+                cell = np.random.choice(2)
+                pair = np.random.choice(8)
+                num = np.random.choice(2)
+                if num == 1:
+                    compact[cell][pair][num] = np.random.choice(self.N_OPERATIONS)
+                else:
+                    inputs = pair // 2 + 2
+                    choice = np.random.choice(inputs)
+                    if pair % 2 == 0 and compact[cell][pair + 1][num] != choice:
+                        compact[cell][pair][num] = choice
+                    elif pair % 2 != 0 and compact[cell][pair - 1][num] != choice:
+                        compact[cell][pair][num] = choice
+
+            if make_compact_immutable(parent_compact) != make_compact_immutable(compact):
+                break
+        new_genotype = convert_compact_to_genotype(compact)
+        for i, cell_type in enumerate(["normal", "reduce"]):
+            cell = eval("new_genotype." + cell_type)
+            for node_idx in range(4):
+                ops = cell[2*node_idx:2*node_idx+2]
+                for k in range(len(self.state[i].vertices[node_idx+2].actions)):
+                    for op in ops:
+                        if k == op[1]:
+                            self.state[i].vertices[node_idx+2].actions[k] = op[0]
+                            break
+                        self.state[i].vertices[node_idx + 2].actions[k] = "none"
+
 
     def get_reward(self, api, metric=Metric.VAL_ACCURACY, dataset="cifar10", df=None):
         normal_cell_genotype = self.state[0].to_genotype()
@@ -184,3 +224,9 @@ class DARTSState:
         convert_genotype_to_naslib(genotype_config, candidate)
         reward = candidate.query(dataset=dataset, metric=metric, dataset_api=api)
         return reward
+
+    def sample_random(self):
+        while not self.is_complete():
+            actions = self.get_action_tuples()
+            random_action = random.choice(actions)
+            self.play_action(*random_action)

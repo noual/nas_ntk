@@ -58,3 +58,9 @@ class Node:
         if temp_parent == node:  # Include root (pas sûr)
             return True
         return False
+
+    def sample_random(self):
+        return self.state.sample_random()
+
+    def mutate(self, **kwargs):
+        return self.state.mutate(**kwargs)
