@@ -18,7 +18,7 @@ from monet.node import Node
 from monet.search_algorithms.mcts_agent import UCT, RAVE, MCTSAgent
 from monet.search_algorithms.regularized_evolution import RegularizedEvolution as MonetRegularizedEvolution
 from monet.search_algorithms.random_search import RandomSearch as MonetRandomSearch
-from monet.search_algorithms.nested import NRPA
+from monet.search_algorithms.nested import NRPA, BeamNRPA
 from monet.search_spaces.nasbench101_node import NASBench101Cell
 from monet.utils.helpers import configure_seaborn
 from naslib.optimizers import RegularizedEvolution, Bananas, RandomSearch
@@ -28,7 +28,7 @@ from naslib.search_spaces.nasbench301.graph import NasBench301SearchSpace
 
 SEARCH_SPACE = "nasbench301"
 DATASET = "cifar10"
-N_ITER = 20**3
+N_ITER = 10000
 
 def run_mcts(algorithm, config):
     config.search.n_iter = N_ITER
@@ -158,18 +158,19 @@ if __name__ == '__main__':
         #     })
         # },
         "NRPA_L3": {
-            "algorithm": NRPA,
+            "algorithm": BeamNRPA,
             "config": CfgNode({
                 "df_path": "none",
                 "dataset": "cifar10",
                 "search": {
-                    "level": 3,
-                    "nrpa_alpha": 1,
+                    "level": 4,
+                    "nrpa_alpha": 0.8,
                     "softmax_temp": 1,
                     "playouts_per_selection": 1,
                     "C": 0.1,
                     "n_iter": 2200,
                     "rave_b": 0.1,
+                    "beam_size": 5
                 },
                 "disable_tqdm": "true",
                 "seed": 0

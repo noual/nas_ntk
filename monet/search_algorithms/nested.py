@@ -240,7 +240,7 @@ class NRPA(NestedMCS):
         #     reduce_concat=[2, 3, 4, 5]
         # )
         # compact = convert_genotype_to_compact(genotype_config)
-        print(f"With p={joint_proba:.4f} : Sampling {sequence}")
+        # print(f"With p={joint_proba:.4f} : Sampling {sequence}")
         reward = playout_node.get_reward(self.api, metric=Metric.VAL_ACCURACY, dataset="cifar10", df=self.df)
 
         del playout_node
@@ -311,20 +311,6 @@ class NRPA(NestedMCS):
                 ax.plot(running_avg(self.best_reward, 10))
                 f.savefig("best_rewards.png")
                 plt.close(f)
-                node_type = type(self.root)
-                playout_node = node_type(copy.deepcopy(self.root.state), sequence=[])
-                playout_node.hash = playout_node.calculate_zobrist_hash(self.root.state.zobrist_table)
-
-                act = playout_node.get_action_tuples()
-                probas = softmax_temp(np.array([policy[self._code(playout_node, move)] for move in act]),
-                                      self.softmax_temp)
-
-                f, ax = plt.subplots(1, 1, figsize=(20,20))
-                df = pd.DataFrame({"action": act, "probability": probas}).sort_values('probability', ascending=False)
-                sns.barplot(df.iloc[:20], x="action", y="probability", color="#3d405b")
-                plt.xticks(rotation=90)
-                f.savefig("best_actions.png")
-                plt.close(f)
                 print(f"[{len(self.rewards)}/{self.n_iter ** self.level}] Best reward: {max(self.best_reward)}")
             
             score, sequence = self._playout(self.root, policy)
@@ -355,6 +341,22 @@ class NRPA(NestedMCS):
                 if level >= 1:
                     print(f"[NRPA LEVEL {level}] with alpha = {alpha:.2f} Best sequence : {best_sequence}")
                 policy = self.adapt(policy, best_sequence)
+                if level == 2:
+                    node_type = type(self.root)
+                    playout_node = node_type(copy.deepcopy(self.root.state), sequence=[])
+                    playout_node.hash = playout_node.calculate_zobrist_hash(self.root.state.zobrist_table)
+
+                    act = playout_node.get_action_tuples()
+                    probas = softmax_temp(np.array([policy[self._code(playout_node, move)] for move in act]),
+                                          self.softmax_temp)
+
+                    f, ax = plt.subplots(1, 1, figsize=(20, 20))
+                    df = pd.DataFrame({"action": act, "probability": probas}).sort_values('probability',
+                                                                                          ascending=False)
+                    sns.barplot(df.iloc[:20], x="action", y="probability", color="#3d405b")
+                    plt.xticks(rotation=90)
+                    f.savefig("best_actions.png")
+                    plt.close(f)
 
             return best_score, best_sequence
 
@@ -371,230 +373,73 @@ class NRPA(NestedMCS):
             node.play_action(action)
         return node, self.rewards, self.best_reward
 
+class BeamNRPA(NRPA):
 
-class NestedMCS_NTK(NestedMCS):
+    def __init__(self, config):
+        super().__init__(config)
+        self.beam_size = config.search.beam_size
 
-    def __init__(self, root_node: Node, level, save_folder=None, disable_tqdm=False, params_path=None):
-        super().__init__(root_node, level, save_folder, params_path=params_path, disable_tqdm=disable_tqdm)
-        self.accuracies = []
-        self.best_accuracy = []
-        self.best_accuracy_value = 0
-        self.class_for_accuracy = None  # La classe qu'on invoque pour obtenir l'accuraacy
-
-    def _playout(self, node: Node):
-        """
-        Crée un playout aléatoire et renvoie l'accuracy sur le modèle entraîné
-        :return:
-        """
-        node_type = type(node)
-        playout_node = node_type(state=copy.deepcopy(node.state), sequence=copy.deepcopy(node.sequence))
-        sequence = playout_node.sequence
-
-        while not playout_node.is_terminal():
-            available_actions = playout_node.get_action_tuples()
-            random_action = available_actions[np.random.randint(len(available_actions))]
-            sequence.append(random_action)
-            playout_node.play_action(random_action)
-
-            # print(f"[PLAYOUT] Playing random action {random_action}")
-
-        reward = self._get_reward(playout_node)
-        accuracy = self.class_for_accuracy._get_reward(self, playout_node)
-        # print(reward, accuracy)
-        del playout_node
-        return reward, sequence, accuracy
-
-    def nested(self, node, level):
-
-        """
-        La seule chose qui change est l'ajout de nouvelles métriques pour tracker l'accuracy
-        :param node:
-        :param level:
-        :return:
-        """
-
-        chosen_sequence = []
-        best_sequence = []
-        best_score = -1
-
-        while not node.is_terminal():
-            action_tuples = node.get_action_tuples()
-            # if level == 2: print(f"[LEVEL {level}] Actions: {action_tuples}")
-            score_for_state = []
-            sequence_for_state = []
-            moves_for_state = []
-
-            for action in action_tuples:
-                node_type = type(node)
-                node_prime = node_type(state=copy.deepcopy(node.state), move=action, parent=node,
-                                       sequence=copy.deepcopy(node.sequence))
-                node_prime.play_action(action)
-                node_prime.sequence.append(action)
-
-                if level == 0:
-                    score, sequence, accuracy = self._playout(node_prime)
-                    self.rewards.append(score)
-                    self.accuracies.append(accuracy)
-                    if score > max(self.best_reward):
-                        self.best_accuracy_value = accuracy
-                    self.best_reward.append(max(self.best_reward))
-                    self.best_accuracy.append(self.best_accuracy_value)
-
-                else:
-                    score, sequence = self.nested(node_prime, level - 1)
-
-                score_for_state.append(score)
-                sequence_for_state.append(sequence)
-                moves_for_state.append(action)
-
-            high_score = np.max(score_for_state)
-            high_index = np.random.choice(
-                np.flatnonzero(score_for_state == np.max(score_for_state)))  # Argmax with random tie-breaks
-            if high_score >= best_score:
-                best_score = high_score
-                chosen_move = moves_for_state[high_index]
-                best_sequence = sequence_for_state[high_index]
-            else:
-                try:
-                    chosen_move = best_sequence.pop(0)
-                except IndexError:
-                    print(best_sequence)
-
-            node.play_action(chosen_move)
-            # node.sequence.append(chosen_move)
-            chosen_sequence.append(chosen_move)
-
-        return best_score, chosen_sequence
-
-    def main_loop(self):
-        if self.save_folder is not None:
-            shutil.copyfile(self.params_path, f"runs/{self.save_folder}/{self.__class__.__name__}-params.json")
-        node = self.root
-
-        reward, sequence = self.nested(node, self.level)
-        return node, self.rewards, self.best_reward, self.accuracies, self.best_accuracy
-
-
-class NRPA_NTK(NRPA):
-
-    def __init__(self, root_node: Node, level, save_folder=None, disable_tqdm=False, params_path=None):
-        super().__init__(root_node, level, save_folder, disable_tqdm, params_path)
-        self.accuracies = []
-        self.best_accuracy = []
-        self.best_accuracy_value = 0
-        self.class_for_accuracy = None  # La classe qu'on invoque pour calculer l'accuracy
-
-    def _playout(self, node: Node):
-
-        playout_node = copy.deepcopy(node)
-        sequence = playout_node.sequence
-
-        while not playout_node.is_terminal():
-
-            # Vérifier si la policy a une valeur pour ce noeud
-            if self._code(playout_node, playout_node.move) not in self.policy:
-                self.policy[self._code(playout_node, playout_node.move)] = 0
-
-            available_actions = playout_node.get_action_tuples()
-            probabilities = []
-            for move in available_actions:
-
-                if self._code(playout_node, move) not in self.policy:
-                    self.policy[self._code(playout_node, move)] = 0
-
-            policy_values = [self.policy[self._code(playout_node, move)] for move in
-                             available_actions]  # Calcule la probabilité de sélectionner chaque action avec la policy
-            probabilities = softmax_temp(np.array(policy_values), self.softmax_temp)
-            action_index = np.random.choice(np.arange(len(available_actions)), p=probabilities)
-            action = available_actions[action_index]  # Used because available_actions is not 1-dimensional
-
-            sequence.append(action)
-            playout_node.play_action(action)
-            playout_node.hash = playout_node.calculate_zobrist_hash(self.root.state.zobrist_table)
-
-        reward = self._get_reward(playout_node)
-        accuracy = self.class_for_accuracy._get_reward(self, playout_node)
-
-        # print(reward, accuracy)
-        del playout_node
-        return reward, sequence, accuracy
-
-    def nrpa(self, node, level):
-        """
-        La seule chose qui change est l'ajout des nouvelles métriques
-        :param node:
-        :param level:
-        :return:
-        """
-
+    def beam_nrpa(self, node, level, policy, alpha):
         if level == 0:
-            self.pbar.update(1)
-            self.pbar.set_description(
-                f"Current best reward : {max(self.best_reward):.4f}, best accuracy : {self.best_accuracy_value:.4f}")
-            if (len(self.rewards) + 1) % 1000 == 0:
+            if (len(self.rewards) - 1 ) % 20 == 0 and len(self.rewards) > 100:
                 f, ax = plt.subplots(1, 1)
                 ax.plot(running_avg(self.rewards, 10))
                 f.savefig("rewards.png")
                 plt.close(f)
                 f, ax = plt.subplots(1, 1)
-                ax.plot(running_avg(self.accuracies, 10))
-                f.savefig("accuracies.png")
-                plt.close(f)
-                f, ax = plt.subplots(1, 1)
                 ax.plot(running_avg(self.best_reward, 10))
                 f.savefig("best_rewards.png")
                 plt.close(f)
-                node_type = type(self.root)
-                playout_node = node_type(copy.deepcopy(self.root.state), sequence=[])
-                playout_node.hash = playout_node.calculate_zobrist_hash(self.root.state.zobrist_table)
-
-                act = playout_node.get_action_tuples()
-                probas = softmax_temp(np.array([self.policy[self._code(playout_node, move)] for move in act]),
-                                      self.softmax_temp)
-
-                f, ax = plt.subplots(1, 1)
-                df = pd.DataFrame({"action": act, "probability": probas}).sort_values('probability', ascending=False)
-                sns.barplot(df.iloc[:20], x="action", y="probability", color="#3d405b")
-                plt.xticks(rotation=90)
-                f.savefig("best_actions.png")
-                plt.close(f)
-
-            score, sequence, accuracy = self._playout(self.root)
-
+                print(f"[{len(self.rewards)}/{self.n_iter ** self.level}] Best reward: {max(self.best_reward)}")
+            score, sequence = self._playout(self.root, policy)
             self.rewards.append(score)
-            self.accuracies.append(accuracy)
-            if score > max(self.best_reward):
-                self.best_accuracy_value = accuracy
-            self.best_reward.append(max(self.best_reward))
-            self.best_accuracy.append(self.best_accuracy_value)
-            return score, sequence
-
+            # print(f"[{len(self.rewards)}/{self.n_iter ** self.level}] Best reward: {max(self.best_reward)}")
+            self.best_reward.append(max(self.rewards))
+            # self.pbar.update(1)
+            # self.pbar.set_description(f"Current best reward : {max(self.best_reward):.4f}")
+            return [(score, sequence, policy)]
         else:
-            # For nesting levels >= 1
-            best_score = -1
-            best_sequence = []
+            if level <= 1:
+                beam_size = self.beam_size
+            else:
+                beam_size = 1
+            beam = [(0, [], policy)]
+            for k in range(self.n_iter):
+                new_beam = []
+                print(f"[{k}/{self.n_iter}] [NRPA level {level}]")
+                for i, (r, s, p) in enumerate(beam):
 
-            for i in range(self.n_iter):
-                reward, sequence = self.nrpa(node, level - 1)
+                    # if level >= 2:
+                    #     print(f" [LEVEL {level} BEAM {i}]")
+                    new_beam.append((r, s, p))
+                    if level == 1:
+                        lr = self.alpha / 10
+                    else:
+                        lr = self.alpha
+                    beam_1 = self.beam_nrpa(node, level - 1, p.copy(), alpha = lr)
+                    if level == 1:
+                        print(f"With beam {i} reward {r:.3f} -> fetch reward {beam_1[0][0]:.3f}")
+                    for j, (r1, s1, p1) in enumerate(beam_1):
+                        p1 = self.adapt(p, s1)
+                        new_beam.append((r1, s1, p1))
+                print(f"Our beam is : {[e[0] for e in new_beam]}")
+                beam = list(sorted(new_beam, key=lambda x: x[0], reverse=True))[:beam_size]
+                beam =  [x for x in beam if x[0] > 0]  # Removing the dummy 0
+                for j, (r, s, p) in enumerate(beam):
+                    p_ = self.adapt(p, s)
+                    beam[j] = (r, s, p_)
+                print(f"Choosing : {[e[0] for e in beam]}")
+            return beam
 
-                if reward >= best_score:
-                    best_score = reward
-                    best_sequence = sequence
-                self.policy = self.adapt(best_sequence)
-
-            return best_score, best_sequence
-
-    def main_loop(self):
+    def main_loop(self, app=None):
         node = self.root
         pol = {}
-        t1 = time.time()
         self.pbar = tqdm(total=self.n_iter ** self.level, position=0, leave=True)
-
-        reward, sequence = self.nrpa(node, self.level)
+        t1 = time.time()
+        reward, sequence = self.beam_nrpa(node, self.level, self.policy, self.alpha)
         t2 = time.time()
         self.pbar.close()
-
         print(f"Sequence is {sequence} with score {reward}")
         for action in sequence:
             node.play_action(action)
-        return node, self.rewards, self.best_reward, self.accuracies, self.best_accuracy
+        return node, self.rewards, self.best_reward
