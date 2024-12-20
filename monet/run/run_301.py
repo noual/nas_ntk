@@ -9,11 +9,12 @@ from tqdm import tqdm
 from yacs.config import CfgNode
 import os
 
-from monet.search_algorithms.evolutionary import EvolutionaryAlgorithm
-
 print(os.getcwd())
 import sys
 sys.path.append("../..")
+sys.path.append("..")
+from monet.search_algorithms.evolutionary import EvolutionaryAlgorithm
+
 from monet.node import Node
 from monet.search_algorithms.mcts_agent import UCT, RAVE, MCTSAgent
 from monet.search_algorithms.regularized_evolution import RegularizedEvolution as MonetRegularizedEvolution
