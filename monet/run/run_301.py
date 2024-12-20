@@ -163,7 +163,7 @@ if __name__ == '__main__':
                 "df_path": "none",
                 "dataset": "cifar10",
                 "search": {
-                    "level": 4,
+                    "level": 3,
                     "nrpa_alpha": 0.8,
                     "softmax_temp": 1,
                     "playouts_per_selection": 1,
@@ -203,21 +203,21 @@ if __name__ == '__main__':
 
             })
         },
-        "RAVE": {
-            "algorithm": RAVE,
-            "config": CfgNode({
-                "df_path": "none",
-                "dataset": "cifar10",
-                "search": {
-                    "playouts_per_selection": 1,
-                    "C": 0.1,
-                    "n_iter": 2200,
-                    "rave_b": 0.1},
-                "disable_tqdm": False,
-                "seed": 0,
-
-            })
-        },
+        # "RAVE": {
+        #     "algorithm": RAVE,
+        #     "config": CfgNode({
+        #         "df_path": "none",
+        #         "dataset": "cifar10",
+        #         "search": {
+        #             "playouts_per_selection": 1,
+        #             "C": 0.1,
+        #             "n_iter": 2200,
+        #             "rave_b": 0.1},
+        #         "disable_tqdm": False,
+        #         "seed": 0,
+        #
+        #     })
+        # },
         "RE": {
             "algorithm": MonetRegularizedEvolution,
             "config": CfgNode({
