@@ -403,8 +403,11 @@ class BeamNRPA(NRPA):
                 beam_size = self.beam_size
             else:
                 beam_size = 1
+
             beam = [(0, [], policy)]
             for k in range(self.n_iter):
+                if len(self.rewards) > self.n_iter ** self.level:
+                    return beam
                 new_beam = []
                 print(f"[{k}/{self.n_iter}] [NRPA level {level}]")
                 for i, (r, s, p) in enumerate(beam):
@@ -436,10 +439,10 @@ class BeamNRPA(NRPA):
         pol = {}
         self.pbar = tqdm(total=self.n_iter ** self.level, position=0, leave=True)
         t1 = time.time()
-        reward, sequence = self.beam_nrpa(node, self.level, self.policy, self.alpha)
+        beam = self.beam_nrpa(node, self.level, self.policy, self.alpha)
         t2 = time.time()
         self.pbar.close()
-        print(f"Sequence is {sequence} with score {reward}")
-        for action in sequence:
-            node.play_action(action)
+        # print(f"Sequence is {sequence} with score {reward}")
+        # for action in sequence:
+        #     node.play_action(action)
         return node, self.rewards, self.best_reward
