@@ -27,7 +27,7 @@ def get_some_data(train_dataloader, num_batches, device):
     for _ in range(num_batches):
         traindata.append(next(dataloader_iter))
     inputs = torch.cat([a for a, _ in traindata])
-    targets = torch.cat([b for _, b in traindata])
+    targets = torch.cat([torch.tensor(b).unsqueeze(0) for _, b in traindata])
     inputs = inputs.to(device)
     targets = targets.to(device)
     return inputs, targets

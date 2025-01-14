@@ -1,3 +1,4 @@
 naslib/data
 naslib/data/*
 monet/old_nas/search_spaces/nas_bench_101/nas_bench_101.csv
+*.pyc

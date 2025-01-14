@@ -226,10 +226,11 @@ class TransBench101SearchSpaceMicro(Graph):
         container.edges[1, 2].set('op', module)
         return container
 
-    def query(self, metric=None, dataset=None, path=None, epoch=-1, full_lc=False, dataset_api=None):
+    def query(self, metric=None, dataset=None, path=None, epoch=-1, full_lc=False, dataset_api=None, df=None):
         """
         Query results from transbench 101
         """
+
         assert isinstance(metric, Metric)
         if metric == Metric.ALL:
             raise NotImplementedError()
@@ -240,6 +241,15 @@ class TransBench101SearchSpaceMicro(Graph):
 
         query_results = dataset_api['api']
         task = dataset_api['task']
+
+        # MONET SPECIFIC
+        if df is not None:
+            assert metric == Metric.VAL_ACCURACY, "Only VAL_ACCURACY is supported for now."
+            assert dataset == "cifar10", "Only CIFAR-10 is supported for now."
+            row = df.loc[df["arch_str"] == arch_str]
+            reward = row[task].item()
+            return reward
+
 
         if task in ['class_scene', 'class_object', 'jigsaw']:
 
@@ -521,7 +531,7 @@ class TransBench101SearchSpaceMacro(Graph):
 
         self.add_edge(1, 2)
 
-    def query(self, metric=None, dataset=None, path=None, epoch=-1, full_lc=False, dataset_api=None):
+    def query(self, metric=None, dataset=None, path=None, epoch=-1, full_lc=False, dataset_api=None, df=None):
         """
         Query results from transbench 101
         """
@@ -535,6 +545,15 @@ class TransBench101SearchSpaceMacro(Graph):
 
         query_results = dataset_api['api']
         task = dataset_api['task']
+
+        # MONET SPECIFIC
+        if df is not None:
+            assert metric == Metric.VAL_ACCURACY, "Only VAL_ACCURACY is supported for now."
+            assert dataset == "cifar10", "Only CIFAR-10 is supported for now."
+            row = df.loc[df["arch_str"] == arch_str]
+            reward = row[task].item()
+            return reward
+
 
         if task in ['class_scene', 'class_object', 'jigsaw']:
 
@@ -661,8 +680,8 @@ class TransBench101SearchSpaceMacro(Graph):
         This will mutate one op from the parent op indices, and then
         update the naslib object and op_indices
         """
-        parent_op_indices = list(parent.get_op_indices())
-        parent_op_ind = parent_op_indices[parent_op_indices != 0]
+        parent_op_indices = np.array(list(parent.get_op_indices()))
+        parent_op_ind = parent_op_indices[parent_op_indices != 0]  # Mettre un np.array
 
         def f(g):
             r = len(g)

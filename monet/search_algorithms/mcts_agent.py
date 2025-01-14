@@ -11,6 +11,7 @@ from monet.search_spaces.nasbench101_node import NASBench101Cell
 from monet.search_spaces.nasbench201_node import NASBench201Cell
 from monet.search_spaces.nasbench301_node import DARTSState, DARTSCell
 from monet.search_spaces.natsbench_node import NATSBenchSizeCell
+from monet.search_spaces.transbench_node import TransBenchCell, TransBenchMacro
 from naslib.search_spaces.core import Metric
 from naslib.utils import get_dataset_api
 from nasbench import api as ModelSpecAPI
@@ -39,7 +40,9 @@ class MCTSAgent:
         print(search_space, dataset)
         self.search_space = search_space
         self.dataset = dataset
-        assert search_space in ["nasbench201", "nasbench101", "nasbench301", "natsbenchsize"], "Only NASBench301, NASBench201, NASBench101, NATS-Bench are supported"
+        assert search_space in ["nasbench201", "nasbench101", "nasbench301", "natsbenchsize",
+                                "transbench101_macro", "transbench101_micro"],\
+            "Only NASBench301, NASBench201, NASBench101, NATS-Bench are supported"
         if search_space == "nasbench201":
             if isinstance(self, UCT):
                 print(f"Reducing number of iterations")
@@ -74,6 +77,22 @@ class MCTSAgent:
                 self.n_iter = self.n_iter // 5
             assert dataset in ["cifar100"], "Only CIFAR10 is supported"
             self.root = Node(state=NATSBenchSizeCell())
+            self.api = get_dataset_api(search_space, dataset)
+
+        elif search_space == "transbench101_micro":
+            if isinstance(self, UCT):
+                print(f"Reducing number of iterations")
+                self.n_iter = self.n_iter // 6
+            assert dataset in ["jigsaw", "class_scene", "class_object", "room_layout", "segmentsemantic", "normal", "autoencoder"], "Only CIFAR10 is supported"
+            self.root = Node(state=TransBenchCell())
+            self.api = get_dataset_api(search_space, dataset)
+
+        elif search_space == "transbench101_macro":
+            if isinstance(self, UCT):
+                print(f"Reducing number of iterations")
+                self.n_iter = self.n_iter // 4
+            assert dataset in ["jigsaw", "class_scene", "class_object", "room_layout", "segmentsemantic", "normal", "autoencoder"], "Only CIFAR10 is supported"
+            self.root = Node(state=TransBenchMacro())
             self.api = get_dataset_api(search_space, dataset)
 
     def _score_node(self, node: Node, parent: Node):
