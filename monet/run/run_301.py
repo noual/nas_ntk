@@ -167,10 +167,11 @@ if __name__ == '__main__':
                 "search": {
                     "level": 3,
                     "nrpa_alpha": 0.8,
+                    "nrpa_lr_update": True,
                     "softmax_temp": 1,
                     "playouts_per_selection": 1,
                     "C": 0.1,
-                    "n_iter": 2200,
+                    "n_iter": 10000,
                     "rave_b": 0.1,
                     "beam_size": 5
                 },

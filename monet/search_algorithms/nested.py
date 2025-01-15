@@ -1,5 +1,6 @@
 import copy
 import json
+import random
 import shutil
 import time
 from collections import namedtuple
@@ -117,9 +118,14 @@ class NRPA(NestedMCS):
         self.best_reward = []
         self.alpha = config.search.nrpa_alpha
         self.softmax_temp = config.search.softmax_temp
+        self.lr_update = config.search.nrpa_lr_update
         self.policy = {}
         # Change the number of iterations for each level
         self.n_iter = int(np.ceil(np.power(self.n_iter, 1 / self.level)))
+        seed = random.randint(1,1000)
+        print("my seed is ", seed)
+        np.random.seed(seed)
+        random.seed(seed)
 
     def adapt_search_space(self, search_space, dataset):
         super().adapt_search_space(search_space, dataset)
@@ -223,7 +229,7 @@ class NRPA(NestedMCS):
             probabilities = softmax_temp(np.array(policy_values), self.softmax_temp)
             # if len(self.best_reward) % 100 == 0:
             #     pprint(list(zip(available_actions, pplayout_node# Used because available_actions is not 1-dimensional
-            action_index = np.random.choice(np.arange(len(available_actions)), p=probabilities)
+            action_index = random.choices(np.arange(len(available_actions)), weights=probabilities)[0]
             joint_proba *= probabilities[action_index]
 
             action = available_actions[action_index]  # Used because available_actions is not 1-dimensional
@@ -331,7 +337,10 @@ class NRPA(NestedMCS):
 
             for i in range(self.n_iter):
                 t1 = time.time()
-                reward, sequence = self.nrpa(node, level - 1, policy.copy(), alpha = self.alpha /  (((self.level+1)-(level-1))**2))
+                alpha=self.alpha
+                if self.lr_update:
+                    alpha = self.alpha / (((self.level + 1) - (level - 1)) ** 2)
+                reward, sequence = self.nrpa(node, level - 1, policy.copy(), alpha=alpha)
                 t2 = time.time()
                 # if level == 2:
                 #     print(f"NRPA search at level {level - 1} has taken {(t2-t1):.2f} seconds")
@@ -415,10 +424,13 @@ class BeamNRPA(NRPA):
                     # if level >= 2:
                     #     print(f" [LEVEL {level} BEAM {i}]")
                     new_beam.append((r, s, p))
-                    if level == 1:
-                        lr = self.alpha / 10
-                    else:
-                        lr = self.alpha
+                    lr = self.alpha
+                    if self.lr_update:
+                        # alpha = self.alpha / (((self.level + 1) - (level - 1)) ** 2)
+                        if level == 1:
+                            lr = self.alpha / 10
+                        else:
+                            lr = self.alpha
                     beam_1 = self.beam_nrpa(node, level - 1, p.copy(), alpha = lr)
                     if level == 1:
                         print(f"With beam {i} reward {r:.3f} -> fetch reward {beam_1[0][0]:.3f}")
