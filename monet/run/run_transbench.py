@@ -191,7 +191,7 @@ if __name__ == '__main__':
         #     })
         # },
         "RE": {
-            "algorithm": MonetRegularizedEvolution,
+            "algorithm": RegularizedEvolution,
             "config": CfgNode({
                 "dataset": "cifar10",
                 "search": {

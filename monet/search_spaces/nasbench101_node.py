@@ -116,6 +116,19 @@ class NASBench101Cell(NASBench201Cell):
                 is_complete = False
         return is_complete
 
+    def initialize_zobrist_table(self):
+        self.zobrist_table = []
+        for i in range(self.ADJACENCY_MATRIX_SIZE):
+            adjacency_table = []
+            for operation in range(self.N_OPERATIONS):
+                adjacency_table.append(random.randint(0, 2 ** 64))
+            self.zobrist_table.append(adjacency_table)
+        for i, v in enumerate(self.vertices):
+            adjacency_table = []
+            for operation in v.OPERATIONS:
+                adjacency_table.append(random.randint(0, 2 ** 64))
+            self.zobrist_table.append(adjacency_table)
+
     def calculate_zobrist_hash(self, zobrist_table):
         hash = 0
         adjacency = self.adjacency_matrix()

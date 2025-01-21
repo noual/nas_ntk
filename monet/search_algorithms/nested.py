@@ -22,9 +22,6 @@ from monet.utils.helpers import running_avg
 from ..node import Node
 
 
-def softmax_temp(x, tau):
-    e_x = np.exp(x / tau)
-    return e_x / e_x.sum()
 
 
 class NestedMCS(MCTSAgent):
@@ -122,10 +119,10 @@ class NRPA(NestedMCS):
         self.policy = {}
         # Change the number of iterations for each level
         self.n_iter = int(np.ceil(np.power(self.n_iter, 1 / self.level)))
-        seed = random.randint(1,1000)
-        print("my seed is ", seed)
-        np.random.seed(seed)
-        random.seed(seed)
+
+    def softmax_temp_fn(self, x, tau, **kwargs):
+        e_x = np.exp(x / tau)
+        return e_x / e_x.sum()
 
     def adapt_search_space(self, search_space, dataset):
         super().adapt_search_space(search_space, dataset)
@@ -177,34 +174,6 @@ class NRPA(NestedMCS):
 
         return pol_prime
 
-    # def adapt(self, policy, sequence):
-    #     node_type = type(self.root)
-    #     node = node_type(state=copy.deepcopy(self.root.state), move=None, parent=None, sequence=[])
-    #     node.hash = node.calculate_zobrist_hash(self.root.state.zobrist_table)
-    #     pol_prime = policy.copy()
-    #     for action in sequence:
-    #         code = self._code(node, action)
-    #         if code not in pol_prime:
-    #             # print("Erreur 0")
-    #             pol_prime[code] = 0
-    #         pol_prime[code] += self.alpha
-    #     z = 0
-    #     moves = node.get_action_tuples()
-    #     for m in moves:
-    #         move_code = self._code(node, m)
-    #         if move_code not in policy:
-    #             #     print("Erreur 1")
-    #             policy[move_code] = 0
-    #         z += np.exp(policy[move_code])
-    #     for m in moves:
-    #         move_code = self._code(node, m)
-    #         if move_code not in pol_prime:
-    #             # print("Erreur 2")
-    #             pol_prime[move_code] = 0
-    #         pol_prime[move_code] -= self.alpha * (np.exp(policy[move_code]) / z)
-    #     return pol_prime
-
-
     def _playout(self, node: Node, policy):
         node_type = type(node)
         playout_node = node_type(state=copy.deepcopy(node.state), move=copy.deepcopy(node.move),
@@ -226,7 +195,11 @@ class NRPA(NestedMCS):
 
             policy_values = [policy[self._code(playout_node, move)] for move in
                              available_actions]  # Calcule la probabilité de sélectionner chaque action avec la policy
-            probabilities = softmax_temp(np.array(policy_values), self.softmax_temp)
+            b = None
+            if hasattr(self, "b"):  # Bias term for GNRPA
+                b = [self.b[move] for move in
+                             available_actions]
+            probabilities = self.softmax_temp_fn(np.array(policy_values), self.softmax_temp, b=b)
             # if len(self.best_reward) % 100 == 0:
             #     pprint(list(zip(available_actions, pplayout_node# Used because available_actions is not 1-dimensional
             action_index = random.choices(np.arange(len(available_actions)), weights=probabilities)[0]
@@ -238,13 +211,7 @@ class NRPA(NestedMCS):
             # print(f"With p={probabilities[action_index]:.4f}, tp={joint_proba:.4f} : Sampling sequence {sequence}")
             playout_node.play_action(action)
             playout_node.hash = playout_node.calculate_zobrist_hash(self.root.state.zobrist_table)
-        # Genotype = namedtuple('Genotype', 'normal normal_concat reduce reduce_concat')
-        # genotype_config = Genotype(
-        #     normal=playout_node.state.state[0].to_genotype(),
-        #     normal_concat=[2, 3, 4, 5],
-        #     reduce=playout_node.state.state[1].to_genotype(),
-        #     reduce_concat=[2, 3, 4, 5]
-        # )
+
         # compact = convert_genotype_to_compact(genotype_config)
         # print(f"With p={joint_proba:.4f} : Sampling {sequence}")
         reward = playout_node.get_reward(self.api, metric=Metric.VAL_ACCURACY, dataset="cifar10", df=self.df)
@@ -252,7 +219,7 @@ class NRPA(NestedMCS):
         del playout_node
         return reward, sequence
 
-    def _playout_101(self, node: Node):
+    def _playout_101(self, node: Node, policy):
         node_type = type(node)
         playout_node = node_type(state=copy.deepcopy(node.state), move=copy.deepcopy(node.move),
                                  parent=copy.deepcopy(node.parent), sequence=copy.deepcopy(node.sequence))
@@ -260,33 +227,39 @@ class NRPA(NestedMCS):
         playout_node.hash = playout_node.calculate_zobrist_hash(self.root.state.zobrist_table)
         is_valid = False
         i = 0
+        joint_proba = 1
         while not is_valid:
             i += 1
             if i > 100:
                 # print("Too many playouts, returning 0")
                 return 0, sequence
             playout_node = copy.deepcopy(node)
+            playout_node.hash = playout_node.calculate_zobrist_hash(self.root.state.zobrist_table)
             sequence = playout_node.sequence
             while not playout_node.is_terminal():
 
                 # Vérifier si la policy a une valeur pour ce noeud
-                if self._code(playout_node, playout_node.move) not in self.policy:
-                    self.policy[self._code(playout_node, playout_node.move)] = 0
+                if self._code(playout_node, playout_node.move) not in policy:
+                    policy[self._code(playout_node, playout_node.move)] = 0
 
                 available_actions = playout_node.get_action_tuples()
                 probabilities = []
                 for move in available_actions:
-                    if self._code(playout_node, move) not in self.policy:
-                        self.policy[self._code(playout_node, move)] = 0
+                    if self._code(playout_node, move) not in policy:
+                        policy[self._code(playout_node, move)] = 0
 
-                policy_values = [self.policy[self._code(playout_node, move)] for move in
+                policy_values = [policy[self._code(playout_node, move)] for move in
                                  available_actions]  # Calcule la probabilité de sélectionner chaque action avec la policy
-
-                probabilities = softmax_temp(np.array(policy_values), self.softmax_temp)
+                b = None
+                if hasattr(self, "b"):  # Bias term for GNRPA
+                    b = [self.b[move] for move in
+                         available_actions]
+                probabilities = self.softmax_temp_fn(np.array(policy_values), self.softmax_temp, b=b)
                 # if len(self.best_reward) % 100 == 0:
                 #     pprint(list(zip(available_actions, pplayout_node# Used because available_actions is not 1-dimensional
                 action_index = np.random.choice(np.arange(len(available_actions)), p=probabilities)
                 action = available_actions[action_index]  # Used because available_actions is not 1-dimensional
+                joint_proba *= probabilities[action_index]
 
                 sequence.append(action)
                 playout_node.play_action(action)
@@ -301,7 +274,7 @@ class NRPA(NestedMCS):
             is_valid = self.api.is_valid(model_spec)
 
         reward = playout_node.get_reward(self.api, metric=Metric.VAL_ACCURACY, dataset="cifar10", df=self.df)
-
+        # print(f"With p={joint_proba:.4f} : Sampling {sequence}")
         del playout_node
         return reward, sequence
 
@@ -317,7 +290,7 @@ class NRPA(NestedMCS):
                 ax.plot(running_avg(self.best_reward, 10))
                 f.savefig("best_rewards.png")
                 plt.close(f)
-                print(f"[{len(self.rewards)}/{self.n_iter ** self.level}] Best reward: {max(self.best_reward)}")
+                # print(f"[{len(self.rewards)}/{self.n_iter ** self.level}] Best reward: {max(self.best_reward)}")
             
             score, sequence = self._playout(self.root, policy)
             self.rewards.append(score)
@@ -347,25 +320,9 @@ class NRPA(NestedMCS):
                 if reward >= best_score:
                     best_score = reward
                     best_sequence = sequence
-                if level >= 1:
-                    print(f"[NRPA LEVEL {level}] with alpha = {alpha:.2f} Best sequence : {best_sequence}")
+                # if level >= 1:
+                #     print(f"[NRPA LEVEL {level}] with alpha = {alpha:.2f} Best sequence : {best_sequence}")
                 policy = self.adapt(policy, best_sequence)
-                if level == 2:
-                    node_type = type(self.root)
-                    playout_node = node_type(copy.deepcopy(self.root.state), sequence=[])
-                    playout_node.hash = playout_node.calculate_zobrist_hash(self.root.state.zobrist_table)
-
-                    act = playout_node.get_action_tuples()
-                    probas = softmax_temp(np.array([policy[self._code(playout_node, move)] for move in act]),
-                                          self.softmax_temp)
-
-                    f, ax = plt.subplots(1, 1, figsize=(20, 20))
-                    df = pd.DataFrame({"action": act, "probability": probas}).sort_values('probability',
-                                                                                          ascending=False)
-                    sns.barplot(df.iloc[:20], x="action", y="probability", color="#3d405b")
-                    plt.xticks(rotation=90)
-                    f.savefig("best_actions.png")
-                    plt.close(f)
 
             return best_score, best_sequence
 
