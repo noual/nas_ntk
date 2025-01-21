@@ -9,7 +9,7 @@ from tqdm import tqdm
 from yacs.config import CfgNode
 import os
 
-from monet.search_algorithms.gnrpa import NRPALR, GNRPA
+
 
 print(os.getcwd())
 import sys
@@ -22,6 +22,7 @@ from monet.search_algorithms.mcts_agent import UCT, RAVE, MCTSAgent
 from monet.search_algorithms.regularized_evolution import RegularizedEvolution as MonetRegularizedEvolution
 from monet.search_algorithms.random_search import RandomSearch as MonetRandomSearch
 from monet.search_algorithms.nested import NRPA, BeamNRPA
+from monet.search_algorithms.gnrpa import NRPALR, GNRPA
 from monet.search_spaces.nasbench101_node import NASBench101Cell
 from monet.utils.helpers import configure_seaborn
 # from naslib.optimizers import RegularizedEvolution, Bananas, RandomSearch
