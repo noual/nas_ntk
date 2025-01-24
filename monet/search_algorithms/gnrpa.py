@@ -87,17 +87,19 @@ class NRPALR(NRPA):
                 # print(f"[{len(self.rewards)}/{self.n_iter ** self.level}] Best reward: {max(self.best_reward)}")
 
             score, sequence = self._playout(self.root, policy)
+            # print(f"Got score {score} with sequence {sequence}")
             self.rewards.append(score)
             # print(f"[{len(self.rewards)}/{self.n_iter ** self.level}] Best reward: {max(self.best_reward)}")
             self.best_reward.append(max(self.rewards))
             self.pbar.update(1)
-            self.pbar.set_description(f"Current best reward : {max(self.best_reward):.4f}")
+            self.pbar.set_description(f"Current best reward : {max(self.best_reward):.4f}, current samples {np.mean(self.rewards[-10:]):.4f}")
             self.i += 1
             return score, sequence
 
         else:
             # For nesting levels >= 1
-            print(f"NRPA search at level {level}")
+            if level > 1:
+                print(f"NRPA search at level {level}")
             best_score = -1
             best_sequence = []
             count_threshold = 0
@@ -106,7 +108,8 @@ class NRPALR(NRPA):
             #     return best_score, best_sequence
 
             while count_threshold < self.threshold:
-
+                if level > 1:
+                    print(f"Launching a new search of level {level}")
                 if self.i > self.n_iter ** self.level:
                     print("Enough iterations.")
                     return best_score, best_sequence
@@ -118,9 +121,11 @@ class NRPALR(NRPA):
                 t2 = time.time()
                 # if level == 2:
                 #     print(f"NRPA search at level {level - 1} has taken {(t2-t1):.2f} seconds")
-                if reward == best_score and level != self.level:
+                if set(sequence) == set(best_sequence) and level != self.level:
                     count_threshold += 1
-                if reward > best_score:
+                elif reward > best_score:
+                    # print(reward, best_score, reward-best_score)
+                    # print(f"best score {best_score} -> {reward}")
                     best_score = reward
                     best_sequence = sequence
                     count_threshold = 0
@@ -128,9 +133,9 @@ class NRPALR(NRPA):
                 #     print(f"[NRPA LEVEL {level}] with alpha = {alpha:.2f} Best sequence : {best_sequence}")
                 policy = self.adapt(policy, best_sequence)
 
-                if count_threshold >= self.threshold:
-                    print(f"[LEVEL {level}] Returning score {best_score}")
-                    return best_score, best_sequence
+                # if count_threshold >= self.threshold:
+                #     # print(f"[LEVEL {level}] Returning score {best_score}")
+                #     return best_score, best_sequence
 
             return best_score, best_sequence
 

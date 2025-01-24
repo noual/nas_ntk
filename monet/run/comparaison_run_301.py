@@ -162,46 +162,46 @@ if __name__ == '__main__':
         #         "seed": 0
         #     })
         # },
-        "NRPA_L3": {
-            "algorithm": NRPA,
-            "config": CfgNode({
-                "df_path": "none",
-                "dataset": "cifar10",
-                "search": {
-                    "level": 3,
-                    "nrpa_alpha": 0.8,
-                    "nrpa_lr_update": True,
-                    "softmax_temp": 1,
-                    "playouts_per_selection": 1,
-                    "C": 0.1,
-                    "n_iter": N_API_CALLS,
-                    "rave_b": 0.1,
-                    "beam_size": 5
-                },
-                "disable_tqdm": "true",
-                "seed": 0
-            })
-        },
-        "BeamNRPA_L3": {
-            "algorithm": BeamNRPA,
-            "config": CfgNode({
-                "df_path": "none",
-                "dataset": "cifar10",
-                "search": {
-                    "level": 3,
-                    "nrpa_alpha": 0.8,
-                    "nrpa_lr_update": True,
-                    "softmax_temp": 1,
-                    "playouts_per_selection": 1,
-                    "C": 0.1,
-                    "n_iter": N_API_CALLS,
-                    "rave_b": 0.1,
-                    "beam_size": 5
-                },
-                "disable_tqdm": "true",
-                "seed": 0
-            })
-        },
+        # "NRPA_L3": {
+        #     "algorithm": NRPA,
+        #     "config": CfgNode({
+        #         "df_path": "none",
+        #         "dataset": "cifar10",
+        #         "search": {
+        #             "level": 3,
+        #             "nrpa_alpha": 0.8,
+        #             "nrpa_lr_update": True,
+        #             "softmax_temp": 1,
+        #             "playouts_per_selection": 1,
+        #             "C": 0.1,
+        #             "n_iter": N_API_CALLS,
+        #             "rave_b": 0.1,
+        #             "beam_size": 5
+        #         },
+        #         "disable_tqdm": "true",
+        #         "seed": 0
+        #     })
+        # },
+        # "BeamNRPA_L3": {
+        #     "algorithm": BeamNRPA,
+        #     "config": CfgNode({
+        #         "df_path": "none",
+        #         "dataset": "cifar10",
+        #         "search": {
+        #             "level": 3,
+        #             "nrpa_alpha": 0.8,
+        #             "nrpa_lr_update": True,
+        #             "softmax_temp": 1,
+        #             "playouts_per_selection": 1,
+        #             "C": 0.1,
+        #             "n_iter": N_API_CALLS,
+        #             "rave_b": 0.1,
+        #             "beam_size": 5
+        #         },
+        #         "disable_tqdm": "true",
+        #         "seed": 0
+        #     })
+        # },
         "NRPALR_L3": {
             "algorithm": NRPALR,
             "config": CfgNode({
@@ -209,7 +209,28 @@ if __name__ == '__main__':
                 "dataset": "cifar10",
                 "search": {
                     "level": 3,
-                    "nrpa_alpha": 0.8,
+                    "nrpa_alpha": 1,
+                    "nrpa_lr_update": False,
+                    "softmax_temp": 1,
+                    "playouts_per_selection": 1,
+                    "C": 0.1,
+                    "n_iter": N_API_CALLS,
+                    "rave_b": 0.1,
+                    "beam_size": 5,
+                    "threshold": 5,
+                },
+                "disable_tqdm": "true",
+                "seed": 0
+            })
+        },
+        "NRPALR_L3-2": {
+            "algorithm": NRPALR,
+            "config": CfgNode({
+                "df_path": "none",
+                "dataset": "cifar10",
+                "search": {
+                    "level": 3,
+                    "nrpa_alpha": 1,
                     "nrpa_lr_update": True,
                     "softmax_temp": 1,
                     "playouts_per_selection": 1,
@@ -223,26 +244,68 @@ if __name__ == '__main__':
                 "seed": 0
             })
         },
-        "GNRPA_L3": {
-            "algorithm": GNRPA,
+        "NRPALR_L3-3": {
+            "algorithm": NRPALR,
             "config": CfgNode({
                 "df_path": "none",
                 "dataset": "cifar10",
                 "search": {
                     "level": 3,
-                    "nrpa_alpha": 0.8,
+                    "nrpa_alpha": 1,
                     "nrpa_lr_update": True,
                     "softmax_temp": 1,
                     "playouts_per_selection": 1,
                     "C": 0.1,
                     "n_iter": N_API_CALLS,
                     "rave_b": 0.1,
-                    "beam_size": 5
+                    "beam_size": 5,
+                    "threshold": 2,
                 },
                 "disable_tqdm": "true",
                 "seed": 0
             })
         },
+        "NRPALR_L3-5": {
+            "algorithm": NRPALR,
+            "config": CfgNode({
+                "df_path": "none",
+                "dataset": "cifar10",
+                "search": {
+                    "level": 3,
+                    "nrpa_alpha": 0.5,
+                    "nrpa_lr_update": True,
+                    "softmax_temp": 1,
+                    "playouts_per_selection": 1,
+                    "C": 0.1,
+                    "n_iter": N_API_CALLS,
+                    "rave_b": 0.1,
+                    "beam_size": 5,
+                    "threshold": 5,
+                },
+                "disable_tqdm": "true",
+                "seed": 0
+            })
+        },
+        # "GNRPA_L3": {
+        #     "algorithm": GNRPA,
+        #     "config": CfgNode({
+        #         "df_path": "none",
+        #         "dataset": "cifar10",
+        #         "search": {
+        #             "level": 3,
+        #             "nrpa_alpha": 0.8,
+        #             "nrpa_lr_update": True,
+        #             "softmax_temp": 1,
+        #             "playouts_per_selection": 1,
+        #             "C": 0.1,
+        #             "n_iter": N_API_CALLS,
+        #             "rave_b": 0.1,
+        #             "beam_size": 5
+        #         },
+        #         "disable_tqdm": "true",
+        #         "seed": 0
+        #     })
+        # },
         # "RS": {
         #     "algorithm": MonetRandomSearch,
         #     "config": CfgNode({
@@ -285,20 +348,20 @@ if __name__ == '__main__':
         #
         #     })
         # },
-        "RE": {
-            "algorithm": MonetRegularizedEvolution,
-            "config": CfgNode({
-                "dataset": "cifar10",
-                "df_path": "none",
-                "search": {
-                    "n_iter": N_API_CALLS,
-                    "epochs": N_API_CALLS,
-                    "sample_size": 25,
-                    "population_size": 100
-                },
-            })
-
-         }
+        # "RE": {
+        #     "algorithm": MonetRegularizedEvolution,
+        #     "config": CfgNode({
+        #         "dataset": "cifar10",
+        #         "df_path": "none",
+        #         "search": {
+        #             "n_iter": N_API_CALLS,
+        #             "epochs": N_API_CALLS,
+        #             "sample_size": 25,
+        #             "population_size": 100
+        #         },
+        #     })
+        #
+        #  }
     }
 
     parser = argparse.ArgumentParser(description="Run NAS algorithms")
